@@ -76,7 +76,7 @@ const Settings = () => {
       <Stack spacing={3}>
         {/* Sync Configuration */}
         <Paper sx={{ p: 2 }}>
-          <Tabs value={tabValue} onChange={(e, v) => setTabValue(v)}>
+          <Tabs value={tabValue} onChange={(_e, v) => setTabValue(v)}>
             <Tab label="WebDAV 同步" />
             <Tab label="S3 同步" />
           </Tabs>
