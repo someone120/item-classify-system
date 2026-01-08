@@ -6,7 +6,7 @@ pub async fn configure_webdav(
     url: String,
     username: String,
     password: String,
-    path: String,
+    _path: String,
 ) -> Result<(), String> {
     // TODO: Implement WebDAV configuration storage
     // For now, just validate inputs
@@ -23,7 +23,7 @@ pub async fn configure_s3(
     region: String,
     access_key: String,
     secret_key: String,
-    endpoint: Option<String>,
+    _endpoint: Option<String>,
 ) -> Result<(), String> {
     // TODO: Implement S3 configuration storage
     // For now, just validate inputs

@@ -1,7 +1,6 @@
-use tauri::AppHandle;
-use tauri_plugin_sql::{Migration, MigrationKind};
+use tauri::{AppHandle, Manager};
 use std::sync::Arc;
-use sqlx::{SqlitePool, Row, Executor};
+use sqlx::SqlitePool;
 
 pub mod models;
 

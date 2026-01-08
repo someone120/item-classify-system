@@ -29,14 +29,30 @@ pub async fn generate_location_qr(
     };
 
     // Generate QR code
-    let qr_code = QrCode::new(qr_code_id.clone()).map_err(|e| e.to_string())?;
-    let image = qr_code.render::<image::Luma<u8>>().build();
+    let qr_code = QrCode::new(qr_code_id.clone()).map_err(|e: qrcode::types::QrError| e.to_string())?;
+
+    // Render to image buffer manually
+    let size = qr_code.width();
+    let mut image_data = vec![0u8; size * size];
+    for (y, row) in qr_code.render::<char>().build().lines().enumerate() {
+        for (x, ch) in row.chars().enumerate() {
+            if ch == '█' || ch == '▀' || ch == '▄' || ch == '■' {
+                image_data[y * size + x] = 0;
+            } else {
+                image_data[y * size + x] = 255;
+            }
+        }
+    }
+
+    // Create image from buffer
+    let image = image::GrayImage::from_raw(size as u32, size as u32, image_data)
+        .unwrap();
 
     // Convert to PNG
     let mut buffer = vec![];
     let mut cursor = std::io::Cursor::new(&mut buffer);
     image.write_to(&mut cursor, image::ImageFormat::Png)
-        .map_err(|e| e.to_string())?;
+        .map_err(|e: image::error::ImageError| e.to_string())?;
 
     // Encode to base64
     let base64_string = base64::engine::general_purpose::STANDARD.encode(&buffer);
@@ -66,14 +82,30 @@ pub async fn generate_batch_qr(
             let qr_code_id: String = row.get("qr_code_id");
 
             // Generate QR code
-            let qr_code = QrCode::new(qr_code_id.clone()).map_err(|e| e.to_string())?;
-            let image = qr_code.render::<image::Luma<u8>>().build();
+            let qr_code = QrCode::new(qr_code_id.clone()).map_err(|e: qrcode::types::QrError| e.to_string())?;
+
+            // Render to image buffer manually
+            let size = qr_code.width();
+            let mut image_data = vec![0u8; size * size];
+            for (y, row) in qr_code.render::<char>().build().lines().enumerate() {
+                for (x, ch) in row.chars().enumerate() {
+                    if ch == '█' || ch == '▀' || ch == '▄' || ch == '■' {
+                        image_data[y * size + x] = 0;
+                    } else {
+                        image_data[y * size + x] = 255;
+                    }
+                }
+            }
+
+            // Create image from buffer
+            let image = image::GrayImage::from_raw(size as u32, size as u32, image_data)
+                .unwrap();
 
             // Convert to PNG
             let mut buffer = vec![];
             let mut cursor = std::io::Cursor::new(&mut buffer);
             image.write_to(&mut cursor, image::ImageFormat::Png)
-                .map_err(|e| e.to_string())?;
+                .map_err(|e: image::error::ImageError| e.to_string())?;
 
             // Encode to base64
             let base64_string = base64::engine::general_purpose::STANDARD.encode(&buffer);

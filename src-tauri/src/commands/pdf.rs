@@ -1,5 +1,4 @@
 use printpdf::*;
-use std::io::Cursor;
 use base64::Engine;
 use crate::database::{query_one};
 use crate::database::DbPool;
@@ -50,7 +49,7 @@ pub async fn generate_pdf_labels(
         _ => (Mm(210.0), Mm(297.0)), // Default A4
     };
 
-    let (doc, page_id, layer_id) = PdfDocument::new("Item Labels", page_width, page_height, "Layer 1");
+    let (mut doc, page_id, layer_id) = PdfDocument::new("Item Labels", page_width, page_height, "Layer 1");
 
     // Add built-in font
     let font_id = BuiltinFont::HelveticaBold;
@@ -65,18 +64,22 @@ pub async fn generate_pdf_labels(
     let labels_per_page = (columns * rows) as usize;
     let total_pages = (items_data.len() + labels_per_page - 1) / labels_per_page;
 
-    let mut current_doc = doc;
+    // Create additional pages if needed
+    let mut page_ids = vec![page_id];
+    for page_num in 1..total_pages {
+        let (new_page, new_page_id) = PdfPage::new(page_width, page_height, format!("Layer {}", page_num + 1), page_num);
+        page_ids.push(new_page_id);
+        doc.add_page(new_page, page_num);
+    }
 
     for page_num in 0..total_pages {
         let start_idx = page_num * labels_per_page;
         let end_idx = std::cmp::min(start_idx + labels_per_page, items_data.len());
         let page_items = &items_data[start_idx..end_idx];
 
-        let (mut page, mut current_layer) = if page_num == 0 {
-            current_doc.get_page(page_id).add_layer(layer_id)
-        } else {
-            PdfPage::new(page_width, page_height, format!("Page {}", page_num))
-        };
+        let current_page = doc.get_page(page_ids[page_num]);
+        let layer_name = format!("Layer {}", page_num + 1);
+        let mut current_layer: PdfLayerReference = current_page.add_layer(layer_name);
 
         for (idx, (_item_id, name, specs, qty, unit, location, _qr_id)) in page_items.iter().enumerate() {
             let row = (idx / columns as usize) as i32;
@@ -111,15 +114,10 @@ pub async fn generate_pdf_labels(
             let qr_y = y - Pt(50.0);
             let _ = current_layer.use_text("二维码", 8.0, qr_x, qr_y, &BuiltinFont::Helvetica);
         }
-
-        if page_num > 0 {
-            // Add the page to the document (note: this is simplified)
-            // In a real implementation, you'd need to properly handle multi-page documents
-        }
     }
 
     // Save to bytes
-    let pdf_bytes = current_doc.save_to_bytes().map_err(|e| e.to_string())?;
+    let pdf_bytes = doc.save_to_bytes().map_err(|e| e.to_string())?;
 
     // Encode to base64
     let base64_string = base64::engine::general_purpose::STANDARD.encode(&pdf_bytes);
