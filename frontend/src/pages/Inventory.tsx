@@ -17,16 +17,22 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import {
   Add as AddIcon,
   Remove as RemoveIcon,
   Refresh as RefreshIcon,
+  QrCodeScanner as ScanIcon,
 } from '@mui/icons-material';
-import { getItems, updateQuantity, getLocations } from '../utils/api';
+import { getItems, updateQuantity, getLocations, getLocationByQR } from '../utils/api';
+import QRCodeScanner from '../components/QRCodeScanner';
 import type { Item, Location } from '../types';
 
 const Inventory = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [items, setItems] = useState<Item[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
   const [loading, setLoading] = useState(true);
@@ -36,6 +42,7 @@ const Inventory = () => {
   const [quantity, setQuantity] = useState(1);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [filterLocation, setFilterLocation] = useState<number | ''>('');
+  const [scannerOpen, setScannerOpen] = useState(false);
 
   const loadItems = async () => {
     setLoading(true);
@@ -94,13 +101,30 @@ const Inventory = () => {
     }
   };
 
+  const handleScanSuccess = async (qrCodeId: string) => {
+    try {
+      // Try to get location by QR code
+      const location = await getLocationByQR(qrCodeId);
+
+      // Filter items by this location
+      const filter = { location_id: location.id };
+      const data = await getItems(filter);
+      setItems(data);
+      setFilterLocation(location.id);
+
+      alert(`已筛选位置: ${location.name}`);
+    } catch (err) {
+      alert('未找到对应位置: ' + qrCodeId);
+    }
+  };
+
   return (
     <Box>
       <Typography variant="h4" gutterBottom>
         库存管理
       </Typography>
 
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2} flexWrap="wrap" gap={2}>
         <FormControl sx={{ minWidth: 200 }}>
           <InputLabel>位置筛选</InputLabel>
           <Select
@@ -116,9 +140,20 @@ const Inventory = () => {
             ))}
           </Select>
         </FormControl>
-        <Button startIcon={<RefreshIcon />} onClick={loadItems} disabled={loading}>
-          刷新
-        </Button>
+        <Box display="flex" gap={1}>
+          {isMobile && (
+            <Button
+              variant="outlined"
+              startIcon={<ScanIcon />}
+              onClick={() => setScannerOpen(true)}
+            >
+              扫描位置
+            </Button>
+          )}
+          <Button startIcon={<RefreshIcon />} onClick={loadItems} disabled={loading}>
+            刷新
+          </Button>
+        </Box>
       </Box>
 
       {error && (
@@ -222,6 +257,12 @@ const Inventory = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <QRCodeScanner
+        open={scannerOpen}
+        onClose={() => setScannerOpen(false)}
+        onScanSuccess={handleScanSuccess}
+      />
     </Box>
   );
 };

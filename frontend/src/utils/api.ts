@@ -74,6 +74,21 @@ export const generateBatchQR = async (
   return invoke<QRCodeResult[]>('generate_batch_qr', { locationIds });
 };
 
+// PDF APIs
+export const generatePdfLabels = async (
+  itemIds: number[],
+  paperSize: string,
+  columns: number,
+  rows: number
+): Promise<string> => {
+  return invoke<string>('generate_pdf_labels', {
+    itemIds,
+    paperSize,
+    columns,
+    rows,
+  });
+};
+
 // Sync APIs
 export const configureWebDAV = async (
   url: string,
