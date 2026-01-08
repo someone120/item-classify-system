@@ -1,7 +1,5 @@
-import React from 'react';
 import {
   Box,
-  Grid,
   Paper,
   Typography,
   Card,
@@ -13,60 +11,65 @@ import {
   Warning as WarningIcon,
 } from '@mui/icons-material';
 
-const Dashboard: React.FC = () => {
+const Dashboard = () => {
   return (
     <Box>
       <Typography variant="h4" gutterBottom>
         仪表盘
       </Typography>
-      <Grid container spacing={3}>
-        <Grid item xs={12} sm={6} md={4}>
-          <Card>
-            <CardContent>
-              <Box display="flex" alignItems="center">
-                <LocationIcon color="primary" sx={{ fontSize: 40, mr: 2 }} />
-                <Box>
-                  <Typography color="textSecondary" gutterBottom variant="body2">
-                    总位置数
-                  </Typography>
-                  <Typography variant="h3">0</Typography>
-                </Box>
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: {
+            xs: 'repeat(1, 1fr)',
+            sm: 'repeat(2, 1fr)',
+            md: 'repeat(3, 1fr)',
+          },
+          gap: 3,
+          mb: 3,
+        }}
+      >
+        <Card>
+          <CardContent>
+            <Box display="flex" alignItems="center">
+              <LocationIcon color="primary" sx={{ fontSize: 40, mr: 2 }} />
+              <Box>
+                <Typography color="textSecondary" gutterBottom variant="body2">
+                  总位置数
+                </Typography>
+                <Typography variant="h3">0</Typography>
               </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={4}>
-          <Card>
-            <CardContent>
-              <Box display="flex" alignItems="center">
-                <InventoryIcon color="primary" sx={{ fontSize: 40, mr: 2 }} />
-                <Box>
-                  <Typography color="textSecondary" gutterBottom variant="body2">
-                    总物品数
-                  </Typography>
-                  <Typography variant="h3">0</Typography>
-                </Box>
+            </Box>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <Box display="flex" alignItems="center">
+              <InventoryIcon color="primary" sx={{ fontSize: 40, mr: 2 }} />
+              <Box>
+                <Typography color="textSecondary" gutterBottom variant="body2">
+                  总物品数
+                </Typography>
+                <Typography variant="h3">0</Typography>
               </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={4}>
-          <Card>
-            <CardContent>
-              <Box display="flex" alignItems="center">
-                <WarningIcon color="error" sx={{ fontSize: 40, mr: 2 }} />
-                <Box>
-                  <Typography color="textSecondary" gutterBottom variant="body2">
-                    库存预警
-                  </Typography>
-                  <Typography variant="h3">0</Typography>
-                </Box>
+            </Box>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <Box display="flex" alignItems="center">
+              <WarningIcon color="error" sx={{ fontSize: 40, mr: 2 }} />
+              <Box>
+                <Typography color="textSecondary" gutterBottom variant="body2">
+                  库存预警
+                </Typography>
+                <Typography variant="h3">0</Typography>
               </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-      <Box mt={3}>
+            </Box>
+          </CardContent>
+        </Card>
+      </Box>
+      <Box>
         <Paper sx={{ p: 2 }}>
           <Typography variant="h6" gutterBottom>
             欢迎使用物品分类管理系统
