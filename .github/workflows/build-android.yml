@@ -1,0 +1,71 @@
+name: Build Android
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  release:
+    types: [created]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Java JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Install frontend dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Build frontend
+        run: |
+          cd frontend
+          npm run build
+
+      - name: Install Tauri CLI
+        run: cargo install tauri-cli --locked
+
+      - name: Initialize Android environment
+        run: |
+          cargo tauri android init
+        working-directory: ./
+
+      - name: Build Android APK
+        run: cargo tauri android build
+
+      - name: Upload Android APK artifact
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: android-apk
+          path: src-tauri/gen/android/app/build/outputs/**/*.apk
+          retention-days: 30
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: src-tauri/gen/android/app/build/outputs/**/*.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
