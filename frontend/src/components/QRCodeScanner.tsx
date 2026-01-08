@@ -11,7 +11,6 @@ import {
   CircularProgress,
   Alert,
 } from '@mui/material';
-import { QrCodeScanner as QrCodeIcon } from '@mui/icons-material';
 
 interface Props {
   open: boolean;
