@@ -27,5 +27,3 @@ rusqlite = { version = "0.30", features = ["bundled"] }
 [features]
 default = ["custom-protocol"]
 custom-protocol = ["tauri/custom-protocol"]
-android = ["tauri/android"]
-ios = ["tauri/ios"]
