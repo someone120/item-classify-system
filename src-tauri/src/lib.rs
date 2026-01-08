@@ -1,32 +1,19 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use tauri::Manager;
-use tauri_plugin_sql::{Migration, MigrationKind};
-
 mod commands;
 mod database;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let migrations = vec![
-        Migration {
-            version: 1,
-            description: "create initial tables",
-            sql: include_str!("../migrations/1_initial.sql"),
-            kind: MigrationKind::Up,
-        },
-    ];
-
     tauri::Builder::default()
-        .plugin(
-            tauri_plugin_sql::Builder::default()
-                .migrations(migrations)
-                .build(),
-        )
+        .plugin(tauri_plugin_sql::Builder::default().build())
         .setup(|app| {
-            // Initialize database on first run
-            database::init(app)?;
+            tauri::async_runtime::block_on(async {
+                // Initialize database on first run
+                database::init(app.handle()).await?;
+                Ok::<(), Box<dyn std::error::Error>>(())
+            })?;
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

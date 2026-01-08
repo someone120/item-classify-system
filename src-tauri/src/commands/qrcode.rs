@@ -1,30 +1,32 @@
-use crate::database::models::QRCodeResult;
+use crate::database::{models::QRCodeResult, query_one};
+use crate::database::DbPool;
 use base64::Engine;
 use qrcode::QrCode;
-use tauri_plugin_sql::SqlitePool;
+use tauri::State;
+use sqlx::Row;
 
 #[tauri::command]
 pub async fn generate_location_qr(
-    db: tauri::State<'_, SqlitePool>,
+    db: State<'_, DbPool>,
     location_id: i32,
 ) -> Result<String, String> {
     // Get location details
-    let result = db
-        .execute(
-            "SELECT id, name, qr_code_id FROM locations WHERE id = $1",
-            vec![location_id.into()],
-        )
-        .await
-        .map_err(|e| e.to_string())?;
+    let result = query_one(
+        &db,
+        "SELECT id, name, qr_code_id FROM locations WHERE id = ?1",
+        vec![location_id.to_string()],
+    )
+    .await
+    .map_err(|e| e.to_string())?;
 
-    if result.is_empty() {
-        return Err("Location not found".to_string());
-    }
-
-    let row = &result[0];
-    let id: i32 = row.get("id").unwrap_or(0);
-    let name: String = row.get("name").unwrap_or_default();
-    let qr_code_id: String = row.get("qr_code_id").unwrap_or_default();
+    let (id, name, qr_code_id) = match result {
+        Some(row) => (
+            row.get::<i32, _>("id"),
+            row.get::<String, _>("name"),
+            row.get::<String, _>("qr_code_id"),
+        ),
+        None => return Err("Location not found".to_string()),
+    };
 
     // Generate QR code
     let qr_code = QrCode::new(qr_code_id.clone()).map_err(|e| e.to_string())?;
@@ -44,25 +46,24 @@ pub async fn generate_location_qr(
 
 #[tauri::command]
 pub async fn generate_batch_qr(
-    db: tauri::State<'_, SqlitePool>,
+    db: State<'_, DbPool>,
     location_ids: Vec<i32>,
 ) -> Result<Vec<QRCodeResult>, String> {
     let mut results = vec![];
 
     for location_id in location_ids {
-        let result = db
-            .execute(
-                "SELECT id, name, qr_code_id FROM locations WHERE id = $1",
-                vec![location_id.into()],
-            )
-            .await
-            .map_err(|e| e.to_string())?;
+        let result = query_one(
+            &db,
+            "SELECT id, name, qr_code_id FROM locations WHERE id = ?1",
+            vec![location_id.to_string()],
+        )
+        .await
+        .map_err(|e| e.to_string())?;
 
-        if !result.is_empty() {
-            let row = &result[0];
-            let id: i32 = row.get("id").unwrap_or(0);
-            let name: String = row.get("name").unwrap_or_default();
-            let qr_code_id: String = row.get("qr_code_id").unwrap_or_default();
+        if let Some(row) = result {
+            let id: i32 = row.get("id");
+            let name: String = row.get("name");
+            let qr_code_id: String = row.get("qr_code_id");
 
             // Generate QR code
             let qr_code = QrCode::new(qr_code_id.clone()).map_err(|e| e.to_string())?;

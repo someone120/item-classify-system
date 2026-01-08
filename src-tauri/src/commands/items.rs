@@ -1,9 +1,11 @@
-use crate::database::models::{Item, ItemFilter, ItemInput};
-use tauri_plugin_sql::SqlitePool;
+use crate::database::{models::{Item, ItemFilter, ItemInput}, query_all, query_one, execute};
+use crate::database::DbPool;
+use tauri::State;
+use sqlx::Row;
 
 #[tauri::command]
 pub async fn get_items(
-    db: tauri::State<'_, SqlitePool>,
+    db: State<'_, DbPool>,
     filter: Option<ItemFilter>,
 ) -> Result<Vec<Item>, String> {
     let mut query = String::from(
@@ -15,45 +17,42 @@ pub async fn get_items(
     if let Some(f) = &filter {
         if let Some(category) = &f.category {
             param_count += 1;
-            query.push_str(&format!(" AND category = ${}", param_count));
+            query.push_str(&format!(" AND category = ?{}", param_count));
             params.push(category.clone());
         }
         if let Some(location_id) = f.location_id {
             param_count += 1;
-            query.push_str(&format!(" AND location_id = ${}", param_count));
+            query.push_str(&format!(" AND location_id = ?{}", param_count));
             params.push(location_id.to_string());
         }
         if let Some(search) = &f.search {
             param_count += 1;
-            query.push_str(&format!(" AND (name LIKE ${} OR specifications LIKE ${})", param_count, param_count));
+            query.push_str(&format!(" AND (name LIKE ?{} OR specifications LIKE ?{})", param_count, param_count));
             params.push(format!("%{}%", search));
         }
     }
 
     query.push_str(" ORDER BY name");
 
-    let param_values: Vec<_> = params.iter().map(|s| s.as_str().into()).collect();
-
-    let result = db
-        .execute(&query, param_values)
+    let result = query_all(&db, &query, params)
         .await
         .map_err(|e| e.to_string())?;
 
     let items: Vec<Item> = result
         .iter()
         .map(|row| Item {
-            id: row.get("id").unwrap_or(0),
-            name: row.get("name").unwrap_or_default(),
-            category: row.get("category").ok(),
-            specifications: row.get("specifications").ok(),
-            quantity: row.get("quantity").unwrap_or(0),
-            unit: row.get("unit").ok(),
-            location_id: row.get("location_id").ok(),
-            min_quantity: row.get("min_quantity").ok(),
-            notes: row.get("notes").ok(),
-            image_path: row.get("image_path").ok(),
-            created_at: row.get("created_at").unwrap_or_default(),
-            updated_at: row.get("updated_at").unwrap_or_default(),
+            id: row.get("id"),
+            name: row.get("name"),
+            category: row.try_get("category").ok(),
+            specifications: row.try_get("specifications").ok(),
+            quantity: row.get("quantity"),
+            unit: row.try_get("unit").ok(),
+            location_id: row.try_get("location_id").ok(),
+            min_quantity: row.try_get("min_quantity").ok(),
+            notes: row.try_get("notes").ok(),
+            image_path: row.try_get("image_path").ok(),
+            created_at: row.get("created_at"),
+            updated_at: row.get("updated_at"),
         })
         .collect();
 
@@ -62,38 +61,51 @@ pub async fn get_items(
 
 #[tauri::command]
 pub async fn create_item(
-    db: tauri::State<'_, SqlitePool>,
+    db: State<'_, DbPool>,
     item: ItemInput,
 ) -> Result<i32, String> {
-    let result = db
-        .execute(
-            "INSERT INTO items (name, category, specifications, quantity, unit, location_id, min_quantity, notes, image_path) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id",
-            vec![
-                item.name.into(),
-                item.category.map(|v| v.into()),
-                item.specifications.map(|v| v.into()),
-                item.quantity.into(),
-                item.unit.map(|v| v.into()),
-                item.location_id.map(|v| v.into()),
-                item.min_quantity.map(|v| v.into()),
-                item.notes.map(|v| v.into()),
-                item.image_path.map(|v| v.into()),
-            ],
-        )
-        .await
-        .map_err(|e| e.to_string())?;
+    let _result = execute(
+        &db,
+        "INSERT INTO items (name, category, specifications, quantity, unit, location_id, min_quantity, notes, image_path) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+        vec![
+            item.name.clone(),
+            item.category.clone().unwrap_or_else(|| "NULL".to_string()),
+            item.specifications.clone().unwrap_or_else(|| "NULL".to_string()),
+            item.quantity.to_string(),
+            item.unit.clone().unwrap_or_else(|| "NULL".to_string()),
+            item.location_id.map(|v| v.to_string()).unwrap_or_else(|| "NULL".to_string()),
+            item.min_quantity.map(|v| v.to_string()).unwrap_or_else(|| "NULL".to_string()),
+            item.notes.clone().unwrap_or_else(|| "NULL".to_string()),
+            item.image_path.clone().unwrap_or_else(|| "NULL".to_string()),
+        ],
+    )
+    .await
+    .map_err(|e| e.to_string())?;
 
-    let id: i32 = result[0].get("id").unwrap_or(0);
+    // Get the last inserted id
+    let result = query_one(
+        &db,
+        "SELECT last_insert_rowid() as id",
+        vec![],
+    )
+    .await
+    .map_err(|e| e.to_string())?;
+
+    let id: i32 = match result {
+        Some(row) => row.get("id"),
+        None => return Err("Failed to get inserted ID".to_string()),
+    };
 
     // Log initial quantity
-    db.execute(
-        "INSERT INTO inventory_log (item_id, quantity_change, quantity_after, operation_type, source) VALUES ($1, $2, $3, $4, $5)",
+    execute(
+        &db,
+        "INSERT INTO inventory_log (item_id, quantity_change, quantity_after, operation_type, source) VALUES (?1, ?2, ?3, ?4, ?5)",
         vec![
-            id.into(),
-            item.quantity.into(),
-            item.quantity.into(),
-            "add".into(),
-            "manual".into(),
+            id.to_string(),
+            item.quantity.to_string(),
+            item.quantity.to_string(),
+            "add".to_string(),
+            "manual".to_string(),
         ],
     )
     .await
@@ -104,23 +116,24 @@ pub async fn create_item(
 
 #[tauri::command]
 pub async fn update_item(
-    db: tauri::State<'_, SqlitePool>,
+    db: State<'_, DbPool>,
     id: i32,
     item: ItemInput,
 ) -> Result<(), String> {
-    db.execute(
-        "UPDATE items SET name = $1, category = $2, specifications = $3, quantity = $4, unit = $5, location_id = $6, min_quantity = $7, notes = $8, image_path = $9, updated_at = CURRENT_TIMESTAMP WHERE id = $10",
+    execute(
+        &db,
+        "UPDATE items SET name = ?1, category = ?2, specifications = ?3, quantity = ?4, unit = ?5, location_id = ?6, min_quantity = ?7, notes = ?8, image_path = ?9, updated_at = CURRENT_TIMESTAMP WHERE id = ?10",
         vec![
-            item.name.into(),
-            item.category.map(|v| v.into()),
-            item.specifications.map(|v| v.into()),
-            item.quantity.into(),
-            item.unit.map(|v| v.into()),
-            item.location_id.map(|v| v.into()),
-            item.min_quantity.map(|v| v.into()),
-            item.notes.map(|v| v.into()),
-            item.image_path.map(|v| v.into()),
-            id.into(),
+            item.name,
+            item.category.unwrap_or_else(|| "NULL".to_string()),
+            item.specifications.unwrap_or_else(|| "NULL".to_string()),
+            item.quantity.to_string(),
+            item.unit.unwrap_or_else(|| "NULL".to_string()),
+            item.location_id.map(|v| v.to_string()).unwrap_or_else(|| "NULL".to_string()),
+            item.min_quantity.map(|v| v.to_string()).unwrap_or_else(|| "NULL".to_string()),
+            item.notes.unwrap_or_else(|| "NULL".to_string()),
+            item.image_path.unwrap_or_else(|| "NULL".to_string()),
+            id.to_string(),
         ],
     )
     .await
@@ -131,12 +144,13 @@ pub async fn update_item(
 
 #[tauri::command]
 pub async fn delete_item(
-    db: tauri::State<'_, SqlitePool>,
+    db: State<'_, DbPool>,
     id: i32,
 ) -> Result<(), String> {
-    db.execute(
-        "DELETE FROM items WHERE id = $1",
-        vec![id.into()],
+    execute(
+        &db,
+        "DELETE FROM items WHERE id = ?1",
+        vec![id.to_string()],
     )
     .await
     .map_err(|e| e.to_string())?;
@@ -146,25 +160,25 @@ pub async fn delete_item(
 
 #[tauri::command]
 pub async fn update_quantity(
-    db: tauri::State<'_, SqlitePool>,
+    db: State<'_, DbPool>,
     item_id: i32,
     change: i32,
     operation_type: String,
 ) -> Result<(), String> {
     // Get current quantity
-    let result = db
-        .execute(
-            "SELECT quantity FROM items WHERE id = $1",
-            vec![item_id.into()],
-        )
-        .await
-        .map_err(|e| e.to_string())?;
+    let result = query_one(
+        &db,
+        "SELECT quantity FROM items WHERE id = ?1",
+        vec![item_id.to_string()],
+    )
+    .await
+    .map_err(|e| e.to_string())?;
 
-    if result.is_empty() {
-        return Err("Item not found".to_string());
-    }
+    let current_quantity: i32 = match result {
+        Some(row) => row.get("quantity"),
+        None => return Err("Item not found".to_string()),
+    };
 
-    let current_quantity: i32 = result[0].get("quantity").unwrap_or(0);
     let new_quantity = current_quantity + change;
 
     if new_quantity < 0 {
@@ -172,22 +186,24 @@ pub async fn update_quantity(
     }
 
     // Update quantity
-    db.execute(
-        "UPDATE items SET quantity = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2",
-        vec![new_quantity.into(), item_id.into()],
+    execute(
+        &db,
+        "UPDATE items SET quantity = ?1, updated_at = CURRENT_TIMESTAMP WHERE id = ?2",
+        vec![new_quantity.to_string(), item_id.to_string()],
     )
     .await
     .map_err(|e| e.to_string())?;
 
     // Log the change
-    db.execute(
-        "INSERT INTO inventory_log (item_id, quantity_change, quantity_after, operation_type, source) VALUES ($1, $2, $3, $4, $5)",
+    execute(
+        &db,
+        "INSERT INTO inventory_log (item_id, quantity_change, quantity_after, operation_type, source) VALUES (?1, ?2, ?3, ?4, ?5)",
         vec![
-            item_id.into(),
-            change.into(),
-            new_quantity.into(),
-            operation_type.clone().into(),
-            "manual".into(),
+            item_id.to_string(),
+            change.to_string(),
+            new_quantity.to_string(),
+            operation_type.clone(),
+            "manual".to_string(),
         ],
     )
     .await

@@ -1,30 +1,31 @@
-use crate::database::models::{Location, LocationInput};
-use serde_json::Value;
-use tauri_plugin_sql::SqlitePool;
+use crate::database::{models::{Location, LocationInput}, query_all, query_one, execute};
+use crate::database::DbPool;
+use tauri::State;
+use sqlx::Row;
 
 #[tauri::command]
 pub async fn get_locations(
-    db: tauri::State<'_, SqlitePool>,
+    db: State<'_, DbPool>,
 ) -> Result<Vec<Location>, String> {
-    let result = db
-        .execute(
-            "SELECT id, name, parent_id, location_type, description, qr_code_id, created_at, updated_at FROM locations ORDER BY name",
-            vec![],
-        )
-        .await
-        .map_err(|e| e.to_string())?;
+    let result = query_all(
+        &db,
+        "SELECT id, name, parent_id, location_type, description, qr_code_id, created_at, updated_at FROM locations ORDER BY name",
+        vec![],
+    )
+    .await
+    .map_err(|e| e.to_string())?;
 
     let locations: Vec<Location> = result
         .iter()
         .map(|row| Location {
-            id: row.get("id").unwrap_or(0),
-            name: row.get("name").unwrap_or_default(),
-            parent_id: row.get("parent_id").ok(),
-            location_type: row.get("location_type").unwrap_or_default(),
-            description: row.get("description").ok(),
-            qr_code_id: row.get("qr_code_id").ok(),
-            created_at: row.get("created_at").unwrap_or_default(),
-            updated_at: row.get("updated_at").unwrap_or_default(),
+            id: row.get("id"),
+            name: row.get("name"),
+            parent_id: row.try_get("parent_id").ok(),
+            location_type: row.get("location_type"),
+            description: row.try_get("description").ok(),
+            qr_code_id: row.try_get("qr_code_id").ok(),
+            created_at: row.get("created_at"),
+            updated_at: row.get("updated_at"),
         })
         .collect();
 
@@ -33,42 +34,57 @@ pub async fn get_locations(
 
 #[tauri::command]
 pub async fn create_location(
-    db: tauri::State<'_, SqlitePool>,
+    db: State<'_, DbPool>,
     input: LocationInput,
 ) -> Result<i32, String> {
     let qr_code_id = format!("LOC-{}", uuid::Uuid::new_v4().to_string().split('-').next().unwrap());
 
-    let result = db
-        .execute(
-            "INSERT INTO locations (name, parent_id, location_type, description, qr_code_id) VALUES ($1, $2, $3, $4, $5) RETURNING id",
-            vec![
-                input.name.into(),
-                input.parent_id.map(|v| v.into()),
-                input.location_type.into(),
-                input.description.map(|v| v.into()),
-                qr_code_id.into(),
-            ],
-        )
-        .await
-        .map_err(|e| e.to_string())?;
+    let parent_id_str = input.parent_id.map(|v| v.to_string());
+    let description_str = input.description.as_ref().cloned();
 
-    let id: i32 = result[0].get("id").unwrap_or(0);
-    Ok(id)
+    let _result = execute(
+        &db,
+        "INSERT INTO locations (name, parent_id, location_type, description, qr_code_id) VALUES (?1, ?2, ?3, ?4, ?5)",
+        vec![
+            input.name,
+            parent_id_str.unwrap_or_else(|| "NULL".to_string()),
+            input.location_type,
+            description_str.unwrap_or_else(|| "NULL".to_string()),
+            qr_code_id.clone(),
+        ],
+    )
+    .await
+    .map_err(|e| e.to_string())?;
+
+    // Get the last inserted id
+    let result = query_one(
+        &db,
+        "SELECT last_insert_rowid() as id",
+        vec![],
+    )
+    .await
+    .map_err(|e| e.to_string())?;
+
+    match result {
+        Some(row) => Ok(row.get("id")),
+        None => Err("Failed to get inserted ID".to_string()),
+    }
 }
 
 #[tauri::command]
 pub async fn update_location(
-    db: tauri::State<'_, SqlitePool>,
+    db: State<'_, DbPool>,
     id: i32,
     name: String,
     description: Option<String>,
 ) -> Result<(), String> {
-    db.execute(
-        "UPDATE locations SET name = $1, description = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3",
+    execute(
+        &db,
+        "UPDATE locations SET name = ?1, description = ?2, updated_at = CURRENT_TIMESTAMP WHERE id = ?3",
         vec![
-            name.into(),
-            description.map(|v| v.into()),
-            id.into(),
+            name,
+            description.unwrap_or_else(|| "NULL".to_string()),
+            id.to_string(),
         ],
     )
     .await
@@ -79,12 +95,13 @@ pub async fn update_location(
 
 #[tauri::command]
 pub async fn delete_location(
-    db: tauri::State<'_, SqlitePool>,
+    db: State<'_, DbPool>,
     id: i32,
 ) -> Result<(), String> {
-    db.execute(
-        "DELETE FROM locations WHERE id = $1",
-        vec![id.into()],
+    execute(
+        &db,
+        "DELETE FROM locations WHERE id = ?1",
+        vec![id.to_string()],
     )
     .await
     .map_err(|e| e.to_string())?;
@@ -94,30 +111,28 @@ pub async fn delete_location(
 
 #[tauri::command]
 pub async fn get_location_by_qr(
-    db: tauri::State<'_, SqlitePool>,
+    db: State<'_, DbPool>,
     qr_code_id: String,
 ) -> Result<Location, String> {
-    let result = db
-        .execute(
-            "SELECT id, name, parent_id, location_type, description, qr_code_id, created_at, updated_at FROM locations WHERE qr_code_id = $1",
-            vec![qr_code_id.into()],
-        )
-        .await
-        .map_err(|e| e.to_string())?;
+    let result = query_one(
+        &db,
+        "SELECT id, name, parent_id, location_type, description, qr_code_id, created_at, updated_at FROM locations WHERE qr_code_id = ?1",
+        vec![qr_code_id],
+    )
+    .await
+    .map_err(|e| e.to_string())?;
 
-    if result.is_empty() {
-        return Err("Location not found".to_string());
+    match result {
+        Some(row) => Ok(Location {
+            id: row.get("id"),
+            name: row.get("name"),
+            parent_id: row.try_get("parent_id").ok(),
+            location_type: row.get("location_type"),
+            description: row.try_get("description").ok(),
+            qr_code_id: row.try_get("qr_code_id").ok(),
+            created_at: row.get("created_at"),
+            updated_at: row.get("updated_at"),
+        }),
+        None => Err("Location not found".to_string()),
     }
-
-    let row = &result[0];
-    Ok(Location {
-        id: row.get("id").unwrap_or(0),
-        name: row.get("name").unwrap_or_default(),
-        parent_id: row.get("parent_id").ok(),
-        location_type: row.get("location_type").unwrap_or_default(),
-        description: row.get("description").ok(),
-        qr_code_id: row.get("qr_code_id").ok(),
-        created_at: row.get("created_at").unwrap_or_default(),
-        updated_at: row.get("updated_at").unwrap_or_default(),
-    })
 }
