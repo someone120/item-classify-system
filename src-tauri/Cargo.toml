@@ -5,10 +5,6 @@ description = "物品分类管理系统"
 authors = ["you"]
 edition = "2021"
 
-[lib]
-name = "item_classify_system_lib"
-crate-type = ["staticlib", "cdylib", "rlib"]
-
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 
