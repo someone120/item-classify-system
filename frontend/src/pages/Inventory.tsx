@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -32,6 +32,7 @@ const Inventory = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
+  const [operation, setOperation] = useState<'add' | 'remove'>('add');
   const [quantity, setQuantity] = useState(1);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [filterLocation, setFilterLocation] = useState<number | ''>('');
@@ -66,8 +67,9 @@ const Inventory = () => {
     loadLocations();
   }, [filterLocation]);
 
-  const handleOpenDialog = (item: Item, operation: 'add' | 'remove') => {
-    setSelectedItem({ ...item, operation });
+  const handleOpenDialog = (item: Item, op: 'add' | 'remove') => {
+    setSelectedItem(item);
+    setOperation(op);
     setQuantity(1);
     setDialogOpen(true);
   };
@@ -82,7 +84,6 @@ const Inventory = () => {
     if (!selectedItem) return;
 
     try {
-      const operation = (selectedItem as any).operation;
       const change = operation === 'add' ? quantity : -quantity;
 
       await updateQuantity(selectedItem.id, change, operation);
@@ -201,7 +202,7 @@ const Inventory = () => {
 
       <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
         <DialogTitle>
-          {(selectedItem as any)?.operation === 'add' ? '入库' : '出库'} - {selectedItem?.name}
+          {operation === 'add' ? '入库' : '出库'} - {selectedItem?.name}
         </DialogTitle>
         <DialogContent>
           <TextField

@@ -11,7 +11,7 @@ import {
   Select,
   MenuItem,
   Box,
-  Grid,
+  Stack,
 } from '@mui/material';
 import type { Item, ItemInput, Location } from '../../types';
 import { getLocations } from '../../utils/api';
@@ -98,8 +98,8 @@ const ItemDialog: React.FC<Props> = ({ open, item, onClose, onSave }) => {
       <DialogTitle>{item ? '编辑物品' : '添加物品'}</DialogTitle>
       <DialogContent>
         <Box sx={{ pt: 1 }}>
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
+          <Stack spacing={2}>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
               <TextField
                 fullWidth
                 label="物品名称 *"
@@ -108,8 +108,6 @@ const ItemDialog: React.FC<Props> = ({ open, item, onClose, onSave }) => {
                 disabled={saving}
                 autoFocus
               />
-            </Grid>
-            <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
                 label="分类"
@@ -118,18 +116,16 @@ const ItemDialog: React.FC<Props> = ({ open, item, onClose, onSave }) => {
                 disabled={saving}
                 placeholder="如：电阻、电容、螺丝"
               />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="规格参数"
-                value={specifications}
-                onChange={(e) => setSpecifications(e.target.value)}
-                disabled={saving}
-                placeholder="如：5.1kΩ 1/4W"
-              />
-            </Grid>
-            <Grid item xs={6} sm={3}>
+            </Stack>
+            <TextField
+              fullWidth
+              label="规格参数"
+              value={specifications}
+              onChange={(e) => setSpecifications(e.target.value)}
+              disabled={saving}
+              placeholder="如：5.1kΩ 1/4W"
+            />
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
               <TextField
                 fullWidth
                 label="数量 *"
@@ -138,8 +134,6 @@ const ItemDialog: React.FC<Props> = ({ open, item, onClose, onSave }) => {
                 onChange={(e) => setQuantity(parseInt(e.target.value) || 0)}
                 disabled={saving}
               />
-            </Grid>
-            <Grid item xs={6} sm={3}>
               <TextField
                 fullWidth
                 label="单位"
@@ -148,8 +142,6 @@ const ItemDialog: React.FC<Props> = ({ open, item, onClose, onSave }) => {
                 disabled={saving}
                 placeholder="个"
               />
-            </Grid>
-            <Grid item xs={6} sm={3}>
               <TextField
                 fullWidth
                 label="最小库存"
@@ -158,37 +150,33 @@ const ItemDialog: React.FC<Props> = ({ open, item, onClose, onSave }) => {
                 onChange={(e) => setMinQuantity(e.target.value ? parseInt(e.target.value) : undefined)}
                 disabled={saving}
               />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
-                <InputLabel>所在位置</InputLabel>
-                <Select
-                  value={locationId || ''}
-                  label="所在位置"
-                  onChange={(e) => setLocationId(e.target.value as number | undefined)}
-                  disabled={saving}
-                >
-                  <MenuItem value="">无位置</MenuItem>
-                  {locations.map((loc) => (
-                    <MenuItem key={loc.id} value={loc.id}>
-                      {loc.name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="备注"
-                multiline
-                rows={2}
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
+            </Stack>
+            <FormControl fullWidth>
+              <InputLabel>所在位置</InputLabel>
+              <Select
+                value={locationId || ''}
+                label="所在位置"
+                onChange={(e) => setLocationId(e.target.value as number | undefined)}
                 disabled={saving}
-              />
-            </Grid>
-          </Grid>
+              >
+                <MenuItem value="">无位置</MenuItem>
+                {locations.map((loc) => (
+                  <MenuItem key={loc.id} value={loc.id}>
+                    {loc.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <TextField
+              fullWidth
+              label="备注"
+              multiline
+              rows={2}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              disabled={saving}
+            />
+          </Stack>
         </Box>
       </DialogContent>
       <DialogActions>

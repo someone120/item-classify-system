@@ -53,7 +53,7 @@ const LocationDialog: React.FC<Props> = ({
     try {
       const input: LocationInput = {
         name: name.trim(),
-        parent_id: parentId ?? location?.parent_id,
+        parent_id: parentId ?? location?.parent_id ?? undefined,
         location_type: locationType,
         description: description.trim() || undefined,
       };
