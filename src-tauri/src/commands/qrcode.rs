@@ -31,21 +31,40 @@ pub async fn generate_location_qr(
     // Generate QR code
     let qr_code = QrCode::new(qr_code_id.clone()).map_err(|e: qrcode::types::QrError| e.to_string())?;
 
-    // Render to image buffer manually
-    let size = qr_code.width();
-    let mut image_data = vec![0u8; size * size];
-    for (y, row) in qr_code.render::<char>().build().lines().enumerate() {
-        for (x, ch) in row.chars().enumerate() {
-            if ch == '█' || ch == '▀' || ch == '▄' || ch == '■' {
-                image_data[y * size + x] = 0;
+    // Scale factor for larger, clearer QR codes
+    let scale = 10u32;
+    let margin = 4u32;
+    let qr_size = qr_code.width() as u32;
+    let image_size = (qr_size + 2 * margin) * scale;
+
+    // Create a larger image buffer with margin
+    let mut image_data = vec![255u8; (image_size * image_size) as usize];
+
+    // Render QR code with scaling and margin
+    for y in 0..qr_size {
+        for x in 0..qr_size {
+            let module = qr_code[(x as usize, y as usize)];
+            let color = if module == qrcode::types::Color::Dark {
+                0 // Black
             } else {
-                image_data[y * size + x] = 255;
+                255 // White
+            };
+
+            // Fill the scaled region
+            for py in 0..scale {
+                for px in 0..scale {
+                    let image_x = (margin + x) * scale + px;
+                    let image_y = (margin + y) * scale + py;
+                    if image_x < image_size && image_y < image_size {
+                        image_data[(image_y * image_size + image_x) as usize] = color;
+                    }
+                }
             }
         }
     }
 
     // Create image from buffer
-    let image = image::GrayImage::from_raw(size as u32, size as u32, image_data)
+    let image = image::GrayImage::from_raw(image_size, image_size, image_data)
         .unwrap();
 
     // Convert to PNG
@@ -84,21 +103,40 @@ pub async fn generate_batch_qr(
             // Generate QR code
             let qr_code = QrCode::new(qr_code_id.clone()).map_err(|e: qrcode::types::QrError| e.to_string())?;
 
-            // Render to image buffer manually
-            let size = qr_code.width();
-            let mut image_data = vec![0u8; size * size];
-            for (y, row) in qr_code.render::<char>().build().lines().enumerate() {
-                for (x, ch) in row.chars().enumerate() {
-                    if ch == '█' || ch == '▀' || ch == '▄' || ch == '■' {
-                        image_data[y * size + x] = 0;
+            // Scale factor for larger, clearer QR codes
+            let scale = 10u32;
+            let margin = 4u32;
+            let qr_size = qr_code.width() as u32;
+            let image_size = (qr_size + 2 * margin) * scale;
+
+            // Create a larger image buffer with margin
+            let mut image_data = vec![255u8; (image_size * image_size) as usize];
+
+            // Render QR code with scaling and margin
+            for y in 0..qr_size {
+                for x in 0..qr_size {
+                    let module = qr_code[(x as usize, y as usize)];
+                    let color = if module == qrcode::types::Color::Dark {
+                        0 // Black
                     } else {
-                        image_data[y * size + x] = 255;
+                        255 // White
+                    };
+
+                    // Fill the scaled region
+                    for py in 0..scale {
+                        for px in 0..scale {
+                            let image_x = (margin + x) * scale + px;
+                            let image_y = (margin + y) * scale + py;
+                            if image_x < image_size && image_y < image_size {
+                                image_data[(image_y * image_size + image_x) as usize] = color;
+                            }
+                        }
                     }
                 }
             }
 
             // Create image from buffer
-            let image = image::GrayImage::from_raw(size as u32, size as u32, image_data)
+            let image = image::GrayImage::from_raw(image_size, image_size, image_data)
                 .unwrap();
 
             // Convert to PNG

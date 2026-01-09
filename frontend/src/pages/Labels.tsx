@@ -22,6 +22,8 @@ import {
   CheckCircle as CheckIcon,
 } from '@mui/icons-material';
 import { getItems, generatePdfLabels } from '../utils/api';
+import { save } from '@tauri-apps/api/dialog';
+import { writeBinaryFile } from '@tauri-apps/api/fs';
 import type { Item } from '../types';
 
 const Labels = () => {
@@ -48,6 +50,7 @@ const Labels = () => {
   };
 
   useEffect(() => {
+    console.log('=== Labels component mounted ===');
     loadItems();
   }, []);
 
@@ -66,28 +69,70 @@ const Labels = () => {
   };
 
   const handleGenerate = async () => {
+    console.log('=== handleGenerate called ===');
+    console.log('Selected IDs:', selectedIds);
+
     if (selectedIds.length === 0) {
+      console.log('No items selected, showing error');
       setError('请至少选择一个物品');
       return;
     }
 
+    console.log('Starting PDF generation...');
     setGenerating(true);
     setError('');
-    try {
-      const pdfData = await generatePdfLabels(selectedIds, paperSize, columns, rows);
 
-      // Download PDF
-      const link = document.createElement('a');
-      link.href = pdfData;
-      link.download = `labels_${Date.now()}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+    try {
+      console.log('Calling generatePdfLabels with:', selectedIds, paperSize, columns, rows);
+      const pdfData = await generatePdfLabels(selectedIds, paperSize, columns, rows);
+      console.log('PDF data received, length:', pdfData.length);
+      console.log('PDF data preview:', pdfData.substring(0, 100));
+
+      // Remove the data URL prefix to get base64 string
+      const base64Data = pdfData.split(',')[1];
+      console.log('Base64 data length:', base64Data?.length);
+
+      if (!base64Data) {
+        throw new Error('Invalid PDF data format');
+      }
+
+      const binaryString = atob(base64Data);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      console.log('Converted to bytes, length:', bytes.length);
+
+      // Open save dialog
+      console.log('Opening save dialog...');
+      const filePath = await save({
+        filters: [
+          {
+            name: 'PDF',
+            extensions: ['pdf'],
+          },
+        ],
+        defaultPath: `labels_${Date.now()}.pdf`,
+      });
+
+      console.log('File path from dialog:', filePath);
+
+      if (filePath) {
+        // Write the PDF file
+        await writeBinaryFile(filePath, bytes);
+        console.log('PDF saved successfully to:', filePath);
+      } else {
+        console.log('User cancelled save dialog');
+      }
     } catch (err) {
+      console.error('PDF generation failed:', err);
       setError('生成 PDF 失败: ' + (err as Error).message);
     } finally {
+      console.log('Setting generating to false');
       setGenerating(false);
     }
+
+    console.log('=== handleGenerate completed ===');
   };
 
   return (
@@ -166,7 +211,10 @@ const Labels = () => {
                 {selectedIds.length === items.length ? '取消全选' : '全选'}
               </Button>
               <Button
-                onClick={handleGenerate}
+                onClick={(e) => {
+                  console.log('Button clicked!', e);
+                  handleGenerate();
+                }}
                 variant="contained"
                 startIcon={<PdfIcon />}
                 disabled={selectedIds.length === 0 || generating}

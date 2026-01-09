@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install)",
+      "Bash(npx:*)",
+      "Bash(RUST_BACKTRACE=1 cd:*)",
+      "Bash(./item-classify-system.exe:*)",
+      "Bash(npm run tauri:*)",
+      "Bash(dir \"%APPDATA%\\\\com.item*\" /s /b)",
+      "Bash(findstr:*)"
+    ]
+  }
+}

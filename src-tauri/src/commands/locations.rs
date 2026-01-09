@@ -1,4 +1,4 @@
-use crate::database::{models::{Location, LocationInput}, query_all, query_one, execute};
+use crate::database::{models::{Location, LocationInput}, query_all, query_one, execute, execute_with_optional};
 use crate::database::DbPool;
 use tauri::State;
 use sqlx::Row;
@@ -15,19 +15,29 @@ pub async fn get_locations(
     .await
     .map_err(|e| e.to_string())?;
 
+    eprintln!("Query returned {} rows", result.len());
+
     let locations: Vec<Location> = result
         .iter()
-        .map(|row| Location {
-            id: row.get("id"),
-            name: row.get("name"),
-            parent_id: row.try_get("parent_id").ok(),
-            location_type: row.get("location_type"),
-            description: row.try_get("description").ok(),
-            qr_code_id: row.try_get("qr_code_id").ok(),
-            created_at: row.get("created_at"),
-            updated_at: row.get("updated_at"),
+        .map(|row| {
+            // Handle NULL parent_id properly - convert 0 to None
+            let parent_id: Option<i32> = row.try_get("parent_id").ok();
+            let parent_id = parent_id.and_then(|v| if v == 0 { None } else { Some(v) });
+
+            Location {
+                id: row.get("id"),
+                name: row.get("name"),
+                parent_id,
+                location_type: row.get("location_type"),
+                description: row.try_get("description").ok(),
+                qr_code_id: row.try_get("qr_code_id").ok(),
+                created_at: row.get("created_at"),
+                updated_at: row.get("updated_at"),
+            }
         })
         .collect();
+
+    eprintln!("Serialized locations: {:?}", locations);
 
     Ok(locations)
 }
@@ -39,18 +49,18 @@ pub async fn create_location(
 ) -> Result<i32, String> {
     let qr_code_id = format!("LOC-{}", uuid::Uuid::new_v4().to_string().split('-').next().unwrap());
 
-    let parent_id_str = input.parent_id.map(|v| v.to_string());
-    let description_str = input.description.as_ref().cloned();
+    // Convert parent_id: Some(0) to None for root locations
+    let parent_id = input.parent_id.and_then(|v| if v == 0 { None } else { Some(v) });
 
-    let _result = execute(
+    let _result = execute_with_optional(
         &db,
         "INSERT INTO locations (name, parent_id, location_type, description, qr_code_id) VALUES (?1, ?2, ?3, ?4, ?5)",
         vec![
-            input.name,
-            parent_id_str.unwrap_or_else(|| "NULL".to_string()),
-            input.location_type,
-            description_str.unwrap_or_else(|| "NULL".to_string()),
-            qr_code_id.clone(),
+            Some(input.name),
+            parent_id.map(|v| v.to_string()),
+            Some(input.location_type),
+            input.description,
+            Some(qr_code_id.clone()),
         ],
     )
     .await
@@ -78,13 +88,13 @@ pub async fn update_location(
     name: String,
     description: Option<String>,
 ) -> Result<(), String> {
-    execute(
+    execute_with_optional(
         &db,
         "UPDATE locations SET name = ?1, description = ?2, updated_at = CURRENT_TIMESTAMP WHERE id = ?3",
         vec![
-            name,
-            description.unwrap_or_else(|| "NULL".to_string()),
-            id.to_string(),
+            Some(name),
+            description,
+            Some(id.to_string()),
         ],
     )
     .await
@@ -123,16 +133,22 @@ pub async fn get_location_by_qr(
     .map_err(|e| e.to_string())?;
 
     match result {
-        Some(row) => Ok(Location {
-            id: row.get("id"),
-            name: row.get("name"),
-            parent_id: row.try_get("parent_id").ok(),
-            location_type: row.get("location_type"),
-            description: row.try_get("description").ok(),
-            qr_code_id: row.try_get("qr_code_id").ok(),
-            created_at: row.get("created_at"),
-            updated_at: row.get("updated_at"),
-        }),
+        Some(row) => {
+            // Handle NULL parent_id properly - convert 0 to None
+            let parent_id: Option<i32> = row.try_get("parent_id").ok();
+            let parent_id = parent_id.and_then(|v| if v == 0 { None } else { Some(v) });
+
+            Ok(Location {
+                id: row.get("id"),
+                name: row.get("name"),
+                parent_id,
+                location_type: row.get("location_type"),
+                description: row.try_get("description").ok(),
+                qr_code_id: row.try_get("qr_code_id").ok(),
+                created_at: row.get("created_at"),
+                updated_at: row.get("updated_at"),
+            })
+        },
         None => Err("Location not found".to_string()),
     }
 }

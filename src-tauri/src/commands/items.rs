@@ -1,4 +1,4 @@
-use crate::database::{models::{Item, ItemFilter, ItemInput}, query_all, query_one, execute};
+use crate::database::{models::{Item, ItemFilter, ItemInput}, query_all, query_one, execute, execute_with_optional};
 use crate::database::DbPool;
 use tauri::State;
 use sqlx::Row;
@@ -64,19 +64,19 @@ pub async fn create_item(
     db: State<'_, DbPool>,
     item: ItemInput,
 ) -> Result<i32, String> {
-    let _result = execute(
+    let _result = execute_with_optional(
         &db,
         "INSERT INTO items (name, category, specifications, quantity, unit, location_id, min_quantity, notes, image_path) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
         vec![
-            item.name.clone(),
-            item.category.clone().unwrap_or_else(|| "NULL".to_string()),
-            item.specifications.clone().unwrap_or_else(|| "NULL".to_string()),
-            item.quantity.to_string(),
-            item.unit.clone().unwrap_or_else(|| "NULL".to_string()),
-            item.location_id.map(|v| v.to_string()).unwrap_or_else(|| "NULL".to_string()),
-            item.min_quantity.map(|v| v.to_string()).unwrap_or_else(|| "NULL".to_string()),
-            item.notes.clone().unwrap_or_else(|| "NULL".to_string()),
-            item.image_path.clone().unwrap_or_else(|| "NULL".to_string()),
+            Some(item.name.clone()),
+            item.category.clone(),
+            item.specifications.clone(),
+            Some(item.quantity.to_string()),
+            item.unit.clone(),
+            item.location_id.map(|v| v.to_string()),
+            item.min_quantity.map(|v| v.to_string()),
+            item.notes.clone(),
+            item.image_path.clone(),
         ],
     )
     .await
@@ -120,20 +120,20 @@ pub async fn update_item(
     id: i32,
     item: ItemInput,
 ) -> Result<(), String> {
-    execute(
+    execute_with_optional(
         &db,
         "UPDATE items SET name = ?1, category = ?2, specifications = ?3, quantity = ?4, unit = ?5, location_id = ?6, min_quantity = ?7, notes = ?8, image_path = ?9, updated_at = CURRENT_TIMESTAMP WHERE id = ?10",
         vec![
-            item.name,
-            item.category.unwrap_or_else(|| "NULL".to_string()),
-            item.specifications.unwrap_or_else(|| "NULL".to_string()),
-            item.quantity.to_string(),
-            item.unit.unwrap_or_else(|| "NULL".to_string()),
-            item.location_id.map(|v| v.to_string()).unwrap_or_else(|| "NULL".to_string()),
-            item.min_quantity.map(|v| v.to_string()).unwrap_or_else(|| "NULL".to_string()),
-            item.notes.unwrap_or_else(|| "NULL".to_string()),
-            item.image_path.unwrap_or_else(|| "NULL".to_string()),
-            id.to_string(),
+            Some(item.name),
+            item.category,
+            item.specifications,
+            Some(item.quantity.to_string()),
+            item.unit,
+            item.location_id.map(|v| v.to_string()),
+            item.min_quantity.map(|v| v.to_string()),
+            item.notes,
+            item.image_path,
+            Some(id.to_string()),
         ],
     )
     .await

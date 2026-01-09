@@ -28,9 +28,12 @@ const Locations: React.FC = () => {
     setLoading(true);
     setError('');
     try {
+      console.log('Calling getLocations...');
       const data = await getLocations();
+      console.log('Received locations:', data);
       setLocations(data);
     } catch (err) {
+      console.error('Failed to load locations:', err);
       setError('加载位置失败: ' + (err as Error).message);
     } finally {
       setLoading(false);

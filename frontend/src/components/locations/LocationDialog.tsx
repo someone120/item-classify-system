@@ -51,12 +51,19 @@ const LocationDialog: React.FC<Props> = ({
 
     setSaving(true);
     try {
+      // Build input object - only include parent_id if it's a valid number
+      const parentIdValue = parentId ?? location?.parent_id ?? null;
       const input: LocationInput = {
         name: name.trim(),
-        parent_id: parentId ?? location?.parent_id ?? undefined,
         location_type: locationType,
         description: description.trim() || undefined,
       };
+
+      // Only add parent_id if it's a valid positive number
+      if (parentIdValue !== null && parentIdValue !== undefined && parentIdValue > 0) {
+        (input as any).parent_id = parentIdValue;
+      }
+
       await onSave(input);
       handleClose();
     } catch (error) {

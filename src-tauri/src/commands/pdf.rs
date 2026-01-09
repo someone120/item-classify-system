@@ -13,9 +13,11 @@ pub async fn generate_pdf_labels(
     columns: i32,
     rows: i32,
 ) -> Result<String, String> {
+    eprintln!("PDF generation requested: {} items, paper: {}, {}x{} grid", item_ids.len(), paper_size, columns, rows);
+
     // Get items
     let mut items_data = Vec::new();
-    for item_id in item_ids {
+    for item_id in &item_ids {
         let result = query_one(
             &db,
             "SELECT i.id, i.name, i.specifications, i.quantity, i.unit, l.name as location_name, l.qr_code_id FROM items i LEFT JOIN locations l ON i.location_id = l.id WHERE i.id = ?1",
@@ -36,6 +38,8 @@ pub async fn generate_pdf_labels(
             ));
         }
     }
+
+    eprintln!("Retrieved {} items from database", items_data.len());
 
     if items_data.is_empty() {
         return Err("No items found".to_string());
@@ -88,6 +92,8 @@ pub async fn generate_pdf_labels(
             let x = Pt(label_width_pt * col as f32 + 10.0);
             let y = Pt(page_height_pt - label_height_pt * (row + 1) as f32 + 50.0);
 
+            eprintln!("Drawing item {} at ({}, {}): {}", idx, col, row, name);
+
             // Add item name
             let _ = current_layer.use_text(&name.chars().take(30).collect::<String>(), 12.0, x.into(), y.into(), &font_bold);
 
@@ -118,8 +124,12 @@ pub async fn generate_pdf_labels(
     // Save to bytes
     let pdf_bytes = doc.save_to_bytes().map_err(|e| e.to_string())?;
 
+    eprintln!("PDF generated successfully, size: {} bytes", pdf_bytes.len());
+
     // Encode to base64
     let base64_string = base64::engine::general_purpose::STANDARD.encode(&pdf_bytes);
+
+    eprintln!("Base64 encoded size: {} bytes", base64_string.len());
 
     Ok(format!("data:application/pdf;base64,{}", base64_string))
 }
