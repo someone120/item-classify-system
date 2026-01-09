@@ -19,7 +19,7 @@ pub async fn generate_location_qr(
     .await
     .map_err(|e| e.to_string())?;
 
-    let (id, name, qr_code_id) = match result {
+    let (_id, _name, qr_code_id) = match result {
         Some(row) => (
             row.get::<i32, _>("id"),
             row.get::<String, _>("name"),

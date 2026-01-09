@@ -34,7 +34,7 @@ pub async fn execute(pool: &DbPool, sql: &str, params: Vec<String>) -> Result<u6
 }
 
 pub async fn get_pool(app: &AppHandle) -> Option<DbPool> {
-    app.try_state::<DbPool>().cloned()
+    app.try_state::<DbPool>().map(|state| state.inner().clone())
 }
 
 pub async fn init(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {

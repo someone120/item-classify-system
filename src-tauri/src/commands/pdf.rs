@@ -49,10 +49,11 @@ pub async fn generate_pdf_labels(
         _ => (Mm(210.0), Mm(297.0)), // Default A4
     };
 
-    let (mut doc, page_id, layer_id) = PdfDocument::new("Item Labels", page_width, page_height, "Layer 1");
+    let (doc, page_id, _layer_id) = PdfDocument::new("Item Labels", page_width, page_height, "Layer 1");
 
-    // Add built-in font
-    let font_id = BuiltinFont::HelveticaBold;
+    // Embed fonts into the document
+    let font_regular = doc.add_builtin_font(BuiltinFont::Helvetica).map_err(|e| e.to_string())?;
+    let font_bold = doc.add_builtin_font(BuiltinFont::HelveticaBold).map_err(|e| e.to_string())?;
 
     // Calculate label dimensions (convert Mm to Pt: 1mm ≈ 2.83pt)
     let page_width_pt = page_width.0 * 2.83;
@@ -67,9 +68,8 @@ pub async fn generate_pdf_labels(
     // Create additional pages if needed
     let mut page_ids = vec![page_id];
     for page_num in 1..total_pages {
-        let (new_page, new_page_id) = PdfPage::new(page_width, page_height, format!("Layer {}", page_num + 1), page_num);
+        let (new_page_id, _new_layer_id) = doc.add_page(page_width, page_height, format!("Layer {}", page_num + 1));
         page_ids.push(new_page_id);
-        doc.add_page(new_page, page_num);
     }
 
     for page_num in 0..total_pages {
@@ -79,7 +79,7 @@ pub async fn generate_pdf_labels(
 
         let current_page = doc.get_page(page_ids[page_num]);
         let layer_name = format!("Layer {}", page_num + 1);
-        let mut current_layer: PdfLayerReference = current_page.add_layer(layer_name);
+        let current_layer: PdfLayerReference = current_page.add_layer(layer_name);
 
         for (idx, (_item_id, name, specs, qty, unit, location, _qr_id)) in page_items.iter().enumerate() {
             let row = (idx / columns as usize) as i32;
@@ -89,30 +89,29 @@ pub async fn generate_pdf_labels(
             let y = Pt(page_height_pt - label_height_pt * (row + 1) as f32 + 50.0);
 
             // Add item name
-            let text_pos = Point { x: x.into(), y: y.into() };
-            let _ = current_layer.use_text(&name.chars().take(30).collect::<String>(), 12.0, x, y, &font_id);
+            let _ = current_layer.use_text(&name.chars().take(30).collect::<String>(), 12.0, x.into(), y.into(), &font_bold);
 
             // Add specifications if exists
             if let Some(s) = specs {
                 let y2 = y - Pt(15.0);
-                let _ = current_layer.use_text(&format!("规格: {}", s).chars().take(40).collect::<String>(), 9.0, x, y2, &BuiltinFont::Helvetica);
+                let _ = current_layer.use_text(&format!("规格: {}", s).chars().take(40).collect::<String>(), 9.0, x.into(), y2.into(), &font_regular);
             }
 
             // Add quantity
             let y3 = y - Pt(27.0);
             let unit_str = unit.as_ref().map(|s| s.as_str()).unwrap_or("个");
-            let _ = current_layer.use_text(&format!("数量: {} {}", qty, unit_str), 10.0, x, y3, &BuiltinFont::HelveticaBold);
+            let _ = current_layer.use_text(&format!("数量: {} {}", qty, unit_str), 10.0, x.into(), y3.into(), &font_bold);
 
             // Add location if exists
             if let Some(loc) = location {
                 let y4 = y - Pt(39.0);
-                let _ = current_layer.use_text(&format!("位置: {}", loc).chars().take(40).collect::<String>(), 9.0, x, y4, &BuiltinFont::Helvetica);
+                let _ = current_layer.use_text(&format!("位置: {}", loc).chars().take(40).collect::<String>(), 9.0, x.into(), y4.into(), &font_regular);
             }
 
             // Add QR code text placeholder
             let qr_x = x + Pt(80.0);
             let qr_y = y - Pt(50.0);
-            let _ = current_layer.use_text("二维码", 8.0, qr_x, qr_y, &BuiltinFont::Helvetica);
+            let _ = current_layer.use_text("二维码", 8.0, qr_x.into(), qr_y.into(), &font_regular);
         }
     }
 
