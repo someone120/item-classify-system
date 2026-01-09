@@ -22,8 +22,8 @@ import {
   CheckCircle as CheckIcon,
 } from '@mui/icons-material';
 import { getItems, generatePdfLabels } from '../utils/api';
-import { save } from '@tauri-apps/api/dialog';
-import { writeBinaryFile } from '@tauri-apps/api/fs';
+import { save } from '@tauri-apps/plugin-dialog';
+import { writeFile } from '@tauri-apps/plugin-fs';
 import type { Item } from '../types';
 
 const Labels = () => {
@@ -119,7 +119,7 @@ const Labels = () => {
 
       if (filePath) {
         // Write the PDF file
-        await writeBinaryFile(filePath, bytes);
+        await writeFile(filePath, bytes);
         console.log('PDF saved successfully to:', filePath);
       } else {
         console.log('User cancelled save dialog');
