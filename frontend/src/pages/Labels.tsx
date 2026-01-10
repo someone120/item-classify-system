@@ -20,8 +20,9 @@ import {
   PictureAsPdf as PdfIcon,
   Refresh as RefreshIcon,
   CheckCircle as CheckIcon,
+  Image as ImageIcon,
 } from '@mui/icons-material';
-import { getItems, generatePdfLabels } from '../utils/api';
+import { getItems, generatePdfLabels, generateImageLabels } from '../utils/api';
 import { save } from '@tauri-apps/plugin-dialog';
 import { writeFile } from '@tauri-apps/plugin-fs';
 import type { Item } from '../types';
@@ -30,11 +31,12 @@ const Labels = () => {
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [generatingImage, setGeneratingImage] = useState(false);
   const [error, setError] = useState<string>('');
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [paperSize, setPaperSize] = useState('A4');
-  const [columns, setColumns] = useState(3);
-  const [rows, setRows] = useState(4);
+  const [columns, setColumns] = useState(2);
+  const [rows, setRows] = useState(2);
 
   const loadItems = async () => {
     setLoading(true);
@@ -135,6 +137,72 @@ const Labels = () => {
     console.log('=== handleGenerate completed ===');
   };
 
+  const handleGenerateImage = async () => {
+    console.log('=== handleGenerateImage called ===');
+    console.log('Selected IDs:', selectedIds);
+
+    if (selectedIds.length === 0) {
+      console.log('No items selected, showing error');
+      setError('请至少选择一个物品');
+      return;
+    }
+
+    console.log('Starting image generation...');
+    setGeneratingImage(true);
+    setError('');
+
+    try {
+      console.log('Calling generateImageLabels with:', selectedIds, columns, rows);
+      const imageData = await generateImageLabels(selectedIds, columns, rows);
+      console.log('Image data received, length:', imageData.length);
+
+      // Remove the data URL prefix to get base64 string
+      const base64Data = imageData.split(',')[1];
+      console.log('Base64 data length:', base64Data?.length);
+
+      if (!base64Data) {
+        throw new Error('Invalid image data format');
+      }
+
+      const binaryString = atob(base64Data);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      console.log('Converted to bytes, length:', bytes.length);
+
+      // Open save dialog
+      console.log('Opening save dialog...');
+      const filePath = await save({
+        filters: [
+          {
+            name: 'PNG',
+            extensions: ['png'],
+          },
+        ],
+        defaultPath: `labels_${Date.now()}.png`,
+      });
+
+      console.log('File path from dialog:', filePath);
+
+      if (filePath) {
+        // Write the image file
+        await writeFile(filePath, bytes);
+        console.log('Image saved successfully to:', filePath);
+      } else {
+        console.log('User cancelled save dialog');
+      }
+    } catch (err) {
+      console.error('Image generation failed:', err);
+      setError('生成图片失败: ' + (err as Error).message);
+    } finally {
+      console.log('Setting generatingImage to false');
+      setGeneratingImage(false);
+    }
+
+    console.log('=== handleGenerateImage completed ===');
+  };
+
   return (
     <Box>
       <Typography variant="h4" gutterBottom>
@@ -221,6 +289,15 @@ const Labels = () => {
               >
                 {generating ? '生成中...' : '生成 PDF'}
               </Button>
+              <Button
+                onClick={handleGenerateImage}
+                variant="contained"
+                color="success"
+                startIcon={<ImageIcon />}
+                disabled={selectedIds.length === 0 || generatingImage}
+              >
+                {generatingImage ? '生成中...' : '生成图片'}
+              </Button>
             </Box>
           </Box>
 
@@ -301,7 +378,9 @@ const Labels = () => {
         <Paper sx={{ p: 2 }}>
           <Typography variant="body2" color="textSecondary">
             💡 提示：生成的 PDF 标签包含物品名称、规格、库存、位置信息和二维码。
-            选择多个物品可在一张纸上打印多个标签。
+            选择多个物品可在一张纸上打印多个标签。<br />
+            🖼️ 图片标签：生成 PNG 格式的标签图片，包含物料名和二维码，适合快速打印或分享。
+            默认 2×2 网格布局（可调整）。
           </Typography>
         </Paper>
       </Stack>

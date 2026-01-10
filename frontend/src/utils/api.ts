@@ -89,6 +89,19 @@ export const generatePdfLabels = async (
   });
 };
 
+// Image APIs
+export const generateImageLabels = async (
+  itemIds: number[],
+  columns: number,
+  rows: number
+): Promise<string> => {
+  return invoke<string>('generate_image_labels', {
+    itemIds,
+    columns,
+    rows,
+  });
+};
+
 // Sync APIs
 export const configureWebDAV = async (
   url: string,

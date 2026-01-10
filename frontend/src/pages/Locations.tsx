@@ -6,6 +6,10 @@ import {
   Paper,
   CircularProgress,
   Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import { Add as AddIcon, Refresh as RefreshIcon } from '@mui/icons-material';
 import LocationTree from '../components/locations/LocationTree';
@@ -20,9 +24,12 @@ const Locations: React.FC = () => {
   const [error, setError] = useState<string>('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
+  const [locationToDelete, setLocationToDelete] = useState<Location | null>(null);
   const [parentId, setParentId] = useState<number | null>(null);
   const [qrLocation, setQrLocation] = useState<{ id: number; name: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const loadLocations = async () => {
     setLoading(true);
@@ -56,17 +63,30 @@ const Locations: React.FC = () => {
     setDialogOpen(true);
   };
 
-  const handleDelete = async (location: Location) => {
-    if (!window.confirm(`确定要删除位置"${location.name}"吗？`)) {
-      return;
-    }
+  const handleDelete = (location: Location) => {
+    setLocationToDelete(location);
+    setDeleteConfirmOpen(true);
+  };
 
+  const confirmDelete = async () => {
+    if (!locationToDelete) return;
+
+    setDeleting(true);
     try {
-      await deleteLocation(location.id);
+      await deleteLocation(locationToDelete.id);
       await loadLocations();
+      setDeleteConfirmOpen(false);
+      setLocationToDelete(null);
     } catch (err) {
       alert('删除失败: ' + (err as Error).message);
+    } finally {
+      setDeleting(false);
     }
+  };
+
+  const cancelDelete = () => {
+    setDeleteConfirmOpen(false);
+    setLocationToDelete(null);
   };
 
   const handleShowQR = (location: Location) => {
@@ -141,6 +161,37 @@ const Locations: React.FC = () => {
         locationName={qrLocation?.name || ''}
         onClose={() => setQrDialogOpen(false)}
       />
+
+      <Dialog open={deleteConfirmOpen} onClose={cancelDelete}>
+        <DialogTitle>确认删除</DialogTitle>
+        <DialogContent>
+          <Typography>
+            确定要删除位置"{locationToDelete?.name}"吗？
+            {locationToDelete && locations.some(l => l.parent_id === locationToDelete.id) && (
+              <>
+                <br />
+                <br />
+                <span style={{ color: '#d32f2f' }}>
+                  警告：此位置包含子位置，删除后所有子位置也将被删除！
+                </span>
+              </>
+            )}
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={cancelDelete} disabled={deleting}>
+            取消
+          </Button>
+          <Button
+            onClick={confirmDelete}
+            color="error"
+            variant="contained"
+            disabled={deleting}
+          >
+            {deleting ? '删除中...' : '确认删除'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

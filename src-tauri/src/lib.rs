@@ -32,6 +32,7 @@ pub fn run() {
             commands::qrcode::generate_location_qr,
             commands::qrcode::generate_batch_qr,
             commands::pdf::generate_pdf_labels,
+            commands::pdf::generate_image_labels,
             commands::sync::configure_webdav,
             commands::sync::configure_s3,
             commands::sync::sync_upload,

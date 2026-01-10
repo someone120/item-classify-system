@@ -153,10 +153,13 @@ const ItemDialog: React.FC<Props> = ({ open, item, onClose, onSave }) => {
             </Stack>
             <FormControl fullWidth>
               <InputLabel>所在位置</InputLabel>
-              <Select
-                value={locationId || ''}
+              <Select<number | string>
+                value={locationId ?? ''}
                 label="所在位置"
-                onChange={(e) => setLocationId(e.target.value as number | undefined)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setLocationId(value === '' ? undefined : Number(value));
+                }}
                 disabled={saving}
               >
                 <MenuItem value="">无位置</MenuItem>
