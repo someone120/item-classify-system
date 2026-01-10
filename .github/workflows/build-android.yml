@@ -25,7 +25,7 @@ jobs:
       - name: Cache Rust dependencies
         uses: swatinem/rust-cache@v2
         with:
-          workspaces: frontend/src-tauri -> target
+          workspaces: src-tauri -> target
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
