@@ -23,7 +23,7 @@
         android:supportsRtl="true">
 
         <activity
-            android:name="com.itemclassify.app.generated.TauriActivity"
+            android:name="com.itemclassify.app.MainActivity"
             android:exported="true"
             android:launchMode="singleTask"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|layoutDirection|screenLayout"
