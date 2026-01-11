@@ -43,6 +43,10 @@
   "plugins": {
     "shell": {
       "open": true
+    },
+    "barcodeScanner": {
+      "enable": true,
+      "scanOnLoad": false
     }
   }
 }

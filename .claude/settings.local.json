@@ -7,7 +7,9 @@
       "Bash(./item-classify-system.exe:*)",
       "Bash(npm run tauri:*)",
       "Bash(dir \"%APPDATA%\\\\com.item*\" /s /b)",
-      "Bash(findstr:*)"
+      "Bash(findstr:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ]
   }
 }

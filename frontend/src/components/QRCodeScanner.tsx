@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { Html5Qrcode } from 'html5-qrcode';
+import { useState } from 'react';
+import { invoke } from '@tauri-apps/api/core';
 import {
   Dialog,
   DialogTitle,
@@ -19,68 +19,48 @@ interface Props {
 }
 
 const QRCodeScanner: React.FC<Props> = ({ open, onClose, onScanSuccess }) => {
-  const scannerRef = useRef<Html5Qrcode | null>(null);
   const [error, setError] = useState<string>('');
   const [scanning, setScanning] = useState(false);
-
-  useEffect(() => {
-    if (open) {
-      startScanner();
-    } else {
-      stopScanner();
-    }
-
-    return () => {
-      stopScanner();
-    };
-  }, [open]);
 
   const startScanner = async () => {
     setError('');
     setScanning(true);
 
     try {
-      if (!scannerRef.current) {
-        scannerRef.current = new Html5Qrcode('qr-reader');
-      }
+      // 使用 Tauri barcode-scanner 插件扫描二维码
+      const result = await invoke<string>('plugin:barcode-scanner|scan', {
+        formats: ['qr_code'],
+        windowed: true,
+      });
 
-      await scannerRef.current.start(
-        { facingMode: 'environment' },
-        {
-          fps: 10,
-          qrbox: { width: 250, height: 250 },
-        },
-        (decodedText) => {
-          onScanSuccess(decodedText);
-          stopScanner();
-          onClose();
-        },
-        (errorMessage) => {
-          // Ignore scan errors, they're normal when no QR code is in view
-          console.warn('Scan error:', errorMessage);
-        }
-      );
+      if (result) {
+        onScanSuccess(result);
+        handleClose();
+      }
     } catch (err) {
-      setError('无法启动摄像头: ' + (err as Error).message);
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      setError('扫描失败: ' + errorMessage);
+      console.error('Scan error:', err);
+    } finally {
       setScanning(false);
     }
   };
 
-  const stopScanner = async () => {
-    if (scannerRef.current) {
-      try {
-        await scannerRef.current.stop();
-        await scannerRef.current.clear();
-      } catch (err) {
-        console.error('Failed to stop scanner:', err);
-      }
-      scannerRef.current = null;
-    }
+  const handleClose = () => {
+    setError('');
     setScanning(false);
+    onClose();
   };
 
+  // 当对话框打开时自动开始扫描
+  if (open && !scanning && !error) {
+    setTimeout(() => {
+      startScanner();
+    }, 100);
+  }
+
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
       <DialogTitle>扫描二维码</DialogTitle>
       <DialogContent>
         {error && (
@@ -89,11 +69,14 @@ const QRCodeScanner: React.FC<Props> = ({ open, onClose, onScanSuccess }) => {
           </Alert>
         )}
         {scanning && (
-          <Box sx={{ mt: 2 }}>
-            <Typography variant="body2" color="textSecondary" align="center" gutterBottom>
-              将二维码对准摄像头
+          <Box display="flex" flexDirection="column" alignItems="center" py={4}>
+            <CircularProgress size={60} />
+            <Typography variant="body2" color="textSecondary" align="center" sx={{ mt: 2 }}>
+              正在启动摄像头...
             </Typography>
-            <div id="qr-reader" style={{ width: '100%' }}></div>
+            <Typography variant="caption" color="textSecondary" align="center" sx={{ mt: 1 }}>
+              请授权相机权限
+            </Typography>
           </Box>
         )}
         {!scanning && !error && (
@@ -103,7 +86,9 @@ const QRCodeScanner: React.FC<Props> = ({ open, onClose, onScanSuccess }) => {
         )}
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>取消</Button>
+        <Button onClick={handleClose} disabled={scanning}>
+          取消
+        </Button>
       </DialogActions>
     </Dialog>
   );
