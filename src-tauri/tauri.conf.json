@@ -38,6 +38,14 @@
     ],
     "android": {
       "minSdkVersion": 24
+    },
+    "windows": {
+      "wix": {
+        "language": "zh-CN"
+      },
+      "nsis": {
+        "displayLanguageSelector": false
+      }
     }
   },
   "plugins": {
