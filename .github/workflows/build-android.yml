@@ -64,9 +64,7 @@ jobs:
         run: cargo install tauri-cli --locked
 
       - name: Initialize Android environment
-        run: |
-          cargo tauri android init
-        working-directory: ./
+        run: cargo tauri android init
 
       - name: Build Android APK
         run: cargo tauri android build

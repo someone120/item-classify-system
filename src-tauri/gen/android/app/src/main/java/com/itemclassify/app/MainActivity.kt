@@ -7,31 +7,24 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.PermissionChecker
 
 class MainActivity : TauriActivity() {
+
   private val cameraPermissionLauncher = registerForActivityResult(
     ActivityResultContracts.RequestPermission()
-  ) { isGranted: Boolean ->
-    if (isGranted) {
-      // Permission granted
-    } else {
-      // Permission denied, camera functionality will not work
-    }
-  }
+  ) { /* Permission result handled by system */ }
 
   override fun onCreate(savedInstanceState: Bundle?) {
     enableEdgeToEdge()
     super.onCreate(savedInstanceState)
-
-    // Check and request camera permission on startup
     checkAndRequestCameraPermission()
   }
 
   private fun checkAndRequestCameraPermission() {
-    if (PermissionChecker.checkSelfPermission(this, Manifest.permission.CAMERA)
-      == PermissionChecker.PERMISSION_GRANTED
-    ) {
-      // Permission already granted
-    } else {
-      // Request camera permission
+    val hasPermission = PermissionChecker.checkSelfPermission(
+      this,
+      Manifest.permission.CAMERA
+    ) == PermissionChecker.PERMISSION_GRANTED
+
+    if (!hasPermission) {
       cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
     }
   }
