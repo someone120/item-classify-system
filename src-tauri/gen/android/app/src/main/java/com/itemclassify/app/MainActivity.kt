@@ -2,7 +2,6 @@ package com.itemclassify.app
 
 import android.Manifest
 import android.os.Bundle
-import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.PermissionChecker
 
@@ -13,7 +12,7 @@ class MainActivity : TauriActivity() {
   ) { /* Permission result handled by system */ }
 
   override fun onCreate(savedInstanceState: Bundle?) {
-    enableEdgeToEdge()
+    // 移除 enableEdgeToEdge() 以避免内容与状态栏重叠
     super.onCreate(savedInstanceState)
     checkAndRequestCameraPermission()
   }
