@@ -55,3 +55,6 @@ Thumbs.db
 *.swp
 *.swo
 *~
+
+# Git worktrees
+.worktrees
