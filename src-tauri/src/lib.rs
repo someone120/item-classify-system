@@ -6,10 +6,15 @@ mod database;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let builder = tauri::Builder::default()
         .plugin(tauri_plugin_sql::Builder::default().build())
         .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_fs::init());
+
+    #[cfg(mobile)]
+    let builder = builder.plugin(tauri_plugin_barcode_scanner::init());
+
+    builder
         .setup(|app| {
             tauri::async_runtime::block_on(async {
                 // Initialize database on first run
@@ -34,6 +39,7 @@ pub fn run() {
             commands::pdf::generate_pdf_labels,
             commands::pdf::generate_image_labels,
             commands::sync::configure_webdav,
+            commands::sync::get_webdav_config,
             commands::sync::configure_s3,
             commands::sync::sync_upload,
             commands::sync::sync_download,

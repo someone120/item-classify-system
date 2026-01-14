@@ -78,6 +78,13 @@ export interface SyncConfig {
   updated_at: string;
 }
 
+export interface WebDavConfig {
+  url: string;
+  username: string;
+  password: string;
+  path: string;
+}
+
 export interface SyncResult {
   success: boolean;
   message: string;

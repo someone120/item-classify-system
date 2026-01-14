@@ -55,3 +55,8 @@ Thumbs.db
 *.swp
 *.swo
 *~
+
+.claude/
+.claude/*
+
+node_modules/

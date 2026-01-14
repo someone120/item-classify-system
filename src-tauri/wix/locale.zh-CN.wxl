@@ -1,0 +1,8 @@
+<WixLocalization Culture="zh-CN" Codepage="936" xmlns="http://schemas.microsoft.com/wix/2006/localization">
+  <String Id="TauriLanguage">2052</String>
+  <String Id="TauriCodepage">936</String>
+  <String Id="LaunchApp">启动 物品分类管理系统</String>
+  <String Id="DowngradeErrorMessage">已安装更新版本的 物品分类管理系统。</String>
+  <String Id="PathEnvVarFeature">将 物品分类管理系统 可执行文件的安装路径添加到 PATH 系统环境变量，使其可在任意位置调用。</String>
+  <String Id="InstallAppFeature">安装 物品分类管理系统。</String>
+</WixLocalization>

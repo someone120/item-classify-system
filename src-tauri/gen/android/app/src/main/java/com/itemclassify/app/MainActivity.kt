@@ -4,6 +4,7 @@ import android.Manifest
 import android.os.Bundle
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.PermissionChecker
+import androidx.core.view.WindowCompat
 
 class MainActivity : TauriActivity() {
 
@@ -14,6 +15,7 @@ class MainActivity : TauriActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
     // 移除 enableEdgeToEdge() 以避免内容与状态栏重叠
     super.onCreate(savedInstanceState)
+    WindowCompat.setDecorFitsSystemWindows(window, true)
     checkAndRequestCameraPermission()
   }
 

@@ -7,6 +7,7 @@ import type {
   ItemFilter,
   QRCodeResult,
   SyncResult,
+  WebDavConfig,
 } from '../types';
 
 // Location APIs
@@ -110,6 +111,10 @@ export const configureWebDAV = async (
   path: string
 ): Promise<void> => {
   return invoke<void>('configure_webdav', { url, username, password, path });
+};
+
+export const getWebDAVConfig = async (): Promise<WebDavConfig | null> => {
+  return invoke<WebDavConfig | null>('get_webdav_config');
 };
 
 export const configureS3 = async (
