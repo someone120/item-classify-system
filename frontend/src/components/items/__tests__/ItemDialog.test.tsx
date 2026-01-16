@@ -18,8 +18,6 @@ it('loads locations and submits trimmed input', async () => {
       name: 'A1',
       parent_id: null,
       location_type: 'box',
-      description: null,
-      qr_code_id: null,
       created_at: '2025-01-01',
       updated_at: '2025-01-01',
     },

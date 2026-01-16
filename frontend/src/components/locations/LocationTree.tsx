@@ -11,14 +11,12 @@ import {
   Collapse,
   Stack,
 } from '@mui/material';
-import {
-  AddBox as AddIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  QrCode as QrCodeIcon,
-  ExpandMore as ExpandMoreIcon,
-  ExpandLess as ExpandLessIcon,
-} from '@mui/icons-material';
+import AddIcon from '@mui/icons-material/AddBox';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
+import QrCodeIcon from '@mui/icons-material/QrCode';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import type { Location } from '../../types';
 
 type LocationType = Location['location_type'];

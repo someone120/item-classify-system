@@ -8,11 +8,9 @@ import {
   IconButton,
   Tooltip,
 } from '@mui/material';
-import {
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Warning as WarningIcon,
-} from '@mui/icons-material';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
+import WarningIcon from '@mui/icons-material/Warning';
 import type { Item } from '../../types';
 
 interface ItemListProps {

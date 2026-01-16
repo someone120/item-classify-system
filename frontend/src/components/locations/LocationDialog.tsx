@@ -9,7 +9,7 @@ import {
   FormControl,
   InputLabel,
   Select,
-  SelectChangeEvent,
+  type SelectChangeEvent,
   MenuItem,
   Box,
 } from '@mui/material';

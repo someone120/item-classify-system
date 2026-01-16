@@ -11,7 +11,8 @@ import {
   DialogContent,
   DialogActions,
 } from '@mui/material';
-import { Add as AddIcon, Refresh as RefreshIcon } from '@mui/icons-material';
+import AddIcon from '@mui/icons-material/Add';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import LocationTree from '../components/locations/LocationTree';
 import LocationDialog from '../components/locations/LocationDialog';
 import QRCodeDialog from '../components/locations/QRCodeDialog';

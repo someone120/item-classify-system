@@ -14,15 +14,13 @@ import {
   Toolbar,
   Typography,
 } from '@mui/material';
-import {
-  Menu as MenuIcon,
-  Dashboard as DashboardIcon,
-  LocationOn as LocationIcon,
-  Inventory as InventoryIcon,
-  ShoppingCart as ShoppingCartIcon,
-  Label as LabelIcon,
-  Settings as SettingsIcon,
-} from '@mui/icons-material';
+import MenuIcon from '@mui/icons-material/Menu';
+import DashboardIcon from '@mui/icons-material/Dashboard';
+import LocationIcon from '@mui/icons-material/LocationOn';
+import InventoryIcon from '@mui/icons-material/Inventory';
+import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
+import LabelIcon from '@mui/icons-material/Label';
+import SettingsIcon from '@mui/icons-material/Settings';
 
 const drawerWidth = 240;
 

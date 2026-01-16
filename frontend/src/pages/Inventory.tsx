@@ -20,12 +20,10 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
-import {
-  Add as AddIcon,
-  Remove as RemoveIcon,
-  Refresh as RefreshIcon,
-  QrCodeScanner as ScanIcon,
-} from '@mui/icons-material';
+import AddIcon from '@mui/icons-material/Add';
+import RemoveIcon from '@mui/icons-material/Remove';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import ScanIcon from '@mui/icons-material/QrCodeScanner';
 import { getItems, updateQuantity, getLocations, getLocationByQR } from '../utils/api';
 import QRCodeScanner from '../components/QRCodeScanner';
 import type { Item, Location, ItemFilter } from '../types';

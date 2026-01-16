@@ -11,10 +11,8 @@ import {
   Alert,
   CircularProgress,
 } from '@mui/material';
-import {
-  CloudUpload as UploadIcon,
-  CloudDownload as DownloadIcon,
-} from '@mui/icons-material';
+import UploadIcon from '@mui/icons-material/CloudUpload';
+import DownloadIcon from '@mui/icons-material/CloudDownload';
 import {
   configureWebDAV,
   configureS3,

@@ -5,11 +5,9 @@ import {
   Card,
   CardContent,
 } from '@mui/material';
-import {
-  LocationOn as LocationIcon,
-  Inventory as InventoryIcon,
-  Warning as WarningIcon,
-} from '@mui/icons-material';
+import LocationIcon from '@mui/icons-material/LocationOn';
+import InventoryIcon from '@mui/icons-material/Inventory';
+import WarningIcon from '@mui/icons-material/Warning';
 
 const Dashboard = () => {
   return (

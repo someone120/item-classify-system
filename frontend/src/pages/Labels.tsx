@@ -16,12 +16,10 @@ import {
   CardContent,
   Chip,
 } from '@mui/material';
-import {
-  PictureAsPdf as PdfIcon,
-  Refresh as RefreshIcon,
-  CheckCircle as CheckIcon,
-  Image as ImageIcon,
-} from '@mui/icons-material';
+import PdfIcon from '@mui/icons-material/PictureAsPdf';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import CheckIcon from '@mui/icons-material/CheckCircle';
+import ImageIcon from '@mui/icons-material/Image';
 import { getItems, generatePdfLabels, generateImageLabels } from '../utils/api';
 import { save } from '@tauri-apps/plugin-dialog';
 import { writeFile } from '@tauri-apps/plugin-fs';

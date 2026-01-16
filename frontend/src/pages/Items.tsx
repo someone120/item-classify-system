@@ -12,11 +12,9 @@ import {
   Select,
   MenuItem,
 } from '@mui/material';
-import {
-  Add as AddIcon,
-  Refresh as RefreshIcon,
-  Search as SearchIcon,
-} from '@mui/icons-material';
+import AddIcon from '@mui/icons-material/Add';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import SearchIcon from '@mui/icons-material/Search';
 import ItemList from '../components/items/ItemList';
 import ItemDialog from '../components/items/ItemDialog';
 import {
