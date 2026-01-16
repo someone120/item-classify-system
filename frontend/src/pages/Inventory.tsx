@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -28,7 +28,7 @@ import {
 } from '@mui/icons-material';
 import { getItems, updateQuantity, getLocations, getLocationByQR } from '../utils/api';
 import QRCodeScanner from '../components/QRCodeScanner';
-import type { Item, Location } from '../types';
+import type { Item, Location, ItemFilter } from '../types';
 
 const Inventory = () => {
   const theme = useTheme();
@@ -44,12 +44,12 @@ const Inventory = () => {
   const [filterLocation, setFilterLocation] = useState<number | ''>('');
   const [scannerOpen, setScannerOpen] = useState(false);
 
-  const loadItems = async () => {
+  const loadItems = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
-      const filter: any = {};
-      if (filterLocation) filter.location_id = filterLocation;
+      const filter: ItemFilter = {};
+      if (filterLocation !== '') filter.location_id = filterLocation;
 
       const data = await getItems(Object.keys(filter).length > 0 ? filter : undefined);
       setItems(data);
@@ -58,21 +58,21 @@ const Inventory = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filterLocation]);
 
-  const loadLocations = async () => {
+  const loadLocations = useCallback(async () => {
     try {
       const data = await getLocations();
       setLocations(data);
     } catch (err) {
       console.error('Failed to load locations:', err);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadItems();
     loadLocations();
-  }, [filterLocation]);
+  }, [loadItems, loadLocations]);
 
   const handleOpenDialog = (item: Item, op: 'add' | 'remove') => {
     setSelectedItem(item);
@@ -113,7 +113,7 @@ const Inventory = () => {
       setFilterLocation(location.id);
 
       alert(`已筛选位置: ${location.name}`);
-    } catch (err) {
+    } catch {
       alert('未找到对应位置: ' + qrCodeId);
     }
   };

@@ -9,6 +9,7 @@ import {
   FormControl,
   InputLabel,
   Select,
+  SelectChangeEvent,
   MenuItem,
   Box,
 } from '@mui/material';
@@ -29,8 +30,9 @@ const LocationDialog: React.FC<Props> = ({
   onClose,
   onSave,
 }) => {
+  type LocationType = Location['location_type'];
   const [name, setName] = React.useState('');
-  const [locationType, setLocationType] = React.useState<'shelf' | 'box' | 'compartment'>('box');
+  const [locationType, setLocationType] = React.useState<LocationType>('box');
   const [description, setDescription] = React.useState('');
   const [saving, setSaving] = React.useState(false);
 
@@ -61,7 +63,7 @@ const LocationDialog: React.FC<Props> = ({
 
       // Only add parent_id if it's a valid positive number
       if (parentIdValue !== null && parentIdValue !== undefined && parentIdValue > 0) {
-        (input as any).parent_id = parentIdValue;
+        input.parent_id = parentIdValue;
       }
 
       await onSave(input);
@@ -101,7 +103,9 @@ const LocationDialog: React.FC<Props> = ({
             <Select
               value={locationType}
               label="位置类型"
-              onChange={(e) => setLocationType(e.target.value as any)}
+              onChange={(event: SelectChangeEvent<LocationType>) => {
+                setLocationType(event.target.value as LocationType);
+              }}
               disabled={saving}
             >
               <MenuItem value="shelf">货架</MenuItem>

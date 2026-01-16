@@ -6,6 +6,7 @@ import {
   CardContent,
   Typography,
   Chip,
+  type ChipProps,
   Tooltip,
   Collapse,
   Stack,
@@ -20,6 +21,9 @@ import {
 } from '@mui/icons-material';
 import type { Location } from '../../types';
 
+type LocationType = Location['location_type'];
+type ChipColor = NonNullable<ChipProps['color']>;
+
 interface LocationTreeProps {
   locations: Location[];
   onAdd: (parentId: number | null) => void;
@@ -28,22 +32,22 @@ interface LocationTreeProps {
   onShowQR: (location: Location) => void;
 }
 
-const getTypeLabel = (type: string) => {
-  const labels: Record<string, string> = {
+const getTypeLabel = (type: LocationType) => {
+  const labels: Record<LocationType, string> = {
     shelf: '货架',
     box: '盒子',
     compartment: '隔间',
   };
-  return labels[type] || type;
+  return labels[type];
 };
 
-const getTypeColor = (type: string) => {
-  const colors: Record<string, any> = {
+const getTypeColor = (type: LocationType): ChipColor => {
+  const colors: Record<LocationType, ChipColor> = {
     shelf: 'primary',
     box: 'success',
     compartment: 'info',
   };
-  return colors[type] || 'default';
+  return colors[type];
 };
 
 const LocationTreeNode: React.FC<{

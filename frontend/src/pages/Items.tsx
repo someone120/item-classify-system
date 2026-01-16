@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -26,7 +26,7 @@ import {
   deleteItem,
   getLocations,
 } from '../utils/api';
-import type { Item, ItemInput, Location } from '../types';
+import type { Item, ItemInput, Location, ItemFilter } from '../types';
 
 const Items: React.FC = () => {
   const [items, setItems] = useState<Item[]>([]);
@@ -39,13 +39,13 @@ const Items: React.FC = () => {
   const [filterCategory, setFilterCategory] = useState<string>('');
   const [filterLocation, setFilterLocation] = useState<number | ''>('');
 
-  const loadItems = async () => {
+  const loadItems = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
-      const filter: any = {};
+      const filter: ItemFilter = {};
       if (filterCategory) filter.category = filterCategory;
-      if (filterLocation) filter.location_id = filterLocation;
+      if (filterLocation !== '') filter.location_id = filterLocation;
       if (searchTerm) filter.search = searchTerm;
 
       const data = await getItems(Object.keys(filter).length > 0 ? filter : undefined);
@@ -55,21 +55,21 @@ const Items: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filterCategory, filterLocation, searchTerm]);
 
-  const loadLocations = async () => {
+  const loadLocations = useCallback(async () => {
     try {
       const data = await getLocations();
       setLocations(data);
     } catch (err) {
       console.error('Failed to load locations:', err);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadItems();
     loadLocations();
-  }, [searchTerm, filterCategory, filterLocation]);
+  }, [loadItems, loadLocations]);
 
   const handleAdd = () => {
     setSelectedItem(null);

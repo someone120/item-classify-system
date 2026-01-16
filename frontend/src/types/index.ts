@@ -72,7 +72,7 @@ export interface SyncConfig {
   id: number;
   sync_type: 'webdav' | 's3';
   enabled: boolean;
-  config: Record<string, any>;
+  config: Record<string, unknown>;
   last_sync_time?: string;
   created_at: string;
   updated_at: string;
