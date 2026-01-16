@@ -1,5 +1,10 @@
-import { useState } from 'react';
-import { invoke } from '@tauri-apps/api/core';
+import { useCallback, useEffect, useState } from 'react';
+import {
+  scan,
+  checkPermissions,
+  requestPermissions,
+  Format,
+} from '@tauri-apps/plugin-barcode-scanner';
 import {
   Dialog,
   DialogTitle,
@@ -22,20 +27,39 @@ const QRCodeScanner: React.FC<Props> = ({ open, onClose, onScanSuccess }) => {
   const [error, setError] = useState<string>('');
   const [scanning, setScanning] = useState(false);
 
-  const startScanner = async () => {
+  const ensureCameraPermission = useCallback(async () => {
+    const current = await checkPermissions();
+    if (current === 'granted') {
+      return;
+    }
+    const requested = await requestPermissions();
+    if (requested !== 'granted') {
+      throw new Error('相机权限未授权');
+    }
+  }, []);
+
+  const handleClose = useCallback(() => {
+    setError('');
+    setScanning(false);
+    onClose();
+  }, [onClose]);
+
+  const startScanner = useCallback(async () => {
     setError('');
     setScanning(true);
 
     try {
-      // 使用 Tauri barcode-scanner 插件扫描二维码
-      const result = await invoke<string>('plugin:barcode-scanner|scan', {
-        formats: ['qr_code'],
-        windowed: true,
+      await ensureCameraPermission();
+      const result = await scan({
+        formats: [Format.QRCode],
+        windowed: false,
       });
 
-      if (result) {
-        onScanSuccess(result);
+      if (result?.content) {
+        onScanSuccess(result.content);
         handleClose();
+      } else {
+        throw new Error('未识别到二维码内容');
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);
@@ -44,20 +68,17 @@ const QRCodeScanner: React.FC<Props> = ({ open, onClose, onScanSuccess }) => {
     } finally {
       setScanning(false);
     }
-  };
+  }, [ensureCameraPermission, handleClose, onScanSuccess]);
 
-  const handleClose = () => {
-    setError('');
-    setScanning(false);
-    onClose();
-  };
-
-  // 当对话框打开时自动开始扫描
-  if (open && !scanning && !error) {
-    setTimeout(() => {
+  useEffect(() => {
+    if (!open || scanning || error) {
+      return;
+    }
+    const timer = setTimeout(() => {
       startScanner();
     }, 100);
-  }
+    return () => clearTimeout(timer);
+  }, [open, scanning, error, startScanner]);
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>

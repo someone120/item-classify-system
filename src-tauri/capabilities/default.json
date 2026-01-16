@@ -20,6 +20,8 @@
     "fs:allow-read-dir",
     "fs:allow-exists",
     "shell:allow-open",
+    "barcode-scanner:allow-check-permissions",
+    "barcode-scanner:allow-request-permissions",
     "barcode-scanner:allow-scan",
     "barcode-scanner:allow-cancel"
   ]

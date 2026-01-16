@@ -388,7 +388,7 @@ pub async fn generate_image_labels(
     let page_items = &items_data[start_idx..end_idx];
 
     // Process each item
-    for (idx, (item_id, name, _specs, qty, unit, _location, qr_id)) in page_items.iter().enumerate() {
+    for (idx, (item_id, name, _specs, _qty, _unit, _location, qr_id)) in page_items.iter().enumerate() {
         let row = (idx / columns as usize) as i32;
         let col = (idx % columns as usize) as i32;
 

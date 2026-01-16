@@ -39,6 +39,8 @@ const Layout: React.FC = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const safeAreaTop = 'env(safe-area-inset-top)';
+  const toolbarSx = { minHeight: { xs: 56, sm: 64 }, pt: safeAreaTop };
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -79,9 +81,10 @@ const Layout: React.FC = () => {
         sx={{
           width: { sm: `calc(100% - ${drawerWidth}px)` },
           ml: { sm: `${drawerWidth}px` },
+          pt: safeAreaTop,
         }}
       >
-        <Toolbar>
+        <Toolbar sx={toolbarSx}>
           <IconButton
             color="inherit"
             aria-label="open drawer"
@@ -139,7 +142,7 @@ const Layout: React.FC = () => {
           width: { sm: `calc(100% - ${drawerWidth}px)` },
         }}
       >
-        <Toolbar />
+        <Toolbar sx={toolbarSx} />
         <Outlet />
       </Box>
     </Box>

@@ -4,8 +4,8 @@
   "version": "0.1.0",
   "identifier": "com.itemclassify.app",
   "build": {
-    "beforeDevCommand": "cd ../frontend && npm run dev",
-    "beforeBuildCommand": "cd ../frontend && npm run build",
+    "beforeDevCommand": "node src-tauri/scripts/tauri-frontend.cjs dev",
+    "beforeBuildCommand": "node src-tauri/scripts/tauri-frontend.cjs build",
     "devUrl": "http://localhost:5173",
     "frontendDist": "../frontend/dist"
   },
@@ -28,7 +28,9 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": [
+      "msi"
+    ],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -36,6 +38,15 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
+    "windows": {
+      "wix": {
+        "language": {
+          "zh-CN": {
+            "localePath": "wix/locale.zh-CN.wxl"
+          }
+        }
+      }
+    },
     "android": {
       "minSdkVersion": 24
     },

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Box,
   Typography,
@@ -15,7 +15,13 @@ import {
   CloudUpload as UploadIcon,
   CloudDownload as DownloadIcon,
 } from '@mui/icons-material';
-import { configureWebDAV, configureS3, syncUpload, syncDownload } from '../utils/api';
+import {
+  configureWebDAV,
+  configureS3,
+  getWebDAVConfig,
+  syncUpload,
+  syncDownload,
+} from '../utils/api';
 
 const Settings = () => {
   const [tabValue, setTabValue] = useState(0);
@@ -32,6 +38,27 @@ const Settings = () => {
 
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [syncing, setSyncing] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    const loadWebdavConfig = async () => {
+      try {
+        const cfg = await getWebDAVConfig();
+        if (!active || !cfg) return;
+        setWebdavUrl(cfg.url);
+        setWebdavUsername(cfg.username);
+        setWebdavPassword(cfg.password);
+        setWebdavPath(cfg.path || '/item-classify-system');
+      } catch (err) {
+        if (!active) return;
+        setMessage({ type: 'error', text: '读取 WebDAV 配置失败: ' + (err as Error).message });
+      }
+    };
+    loadWebdavConfig();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const handleSaveWebDAV = async () => {
     try {
