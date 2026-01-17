@@ -60,3 +60,4 @@ Thumbs.db
 .claude/*
 
 node_modules/
+.worktrees/
