@@ -62,8 +62,12 @@ pub async fn generate_pdf_labels(
     paper_size: String,
     columns: i32,
     rows: i32,
+    template: String,
+    font_size: f32,
+    show_fields: Vec<String>,
 ) -> Result<String, String> {
-    eprintln!("PDF generation requested: {} items, paper: {}, {}x{} grid", item_ids.len(), paper_size, columns, rows);
+    eprintln!("PDF generation requested: {} items, paper: {}, {}x{} grid, template: {}, font: {}, fields: {:?}", 
+        item_ids.len(), paper_size, columns, rows, template, font_size, show_fields);
 
     // Get items
     let mut items_data = Vec::new();
@@ -137,6 +141,13 @@ pub async fn generate_pdf_labels(
         let (new_page_id, _new_layer_id) = doc.add_page(page_width, page_height, format!("Layer {}", page_num + 1));
         page_ids.push(new_page_id);
     }
+    
+    // Parse visible fields
+    let show_name = show_fields.contains(&"name".to_string());
+    let show_specs = show_fields.contains(&"specifications".to_string());
+    let show_qty = show_fields.contains(&"quantity".to_string());
+    let show_loc = show_fields.contains(&"location".to_string());
+    let show_qr = show_fields.contains(&"qrCode".to_string());
 
     for page_num in 0..total_pages {
         let start_idx = page_num * labels_per_page;
@@ -189,111 +200,127 @@ pub async fn generate_pdf_labels(
             eprintln!("Drawing item {} at ({}, {}): {}", idx, col, row, name);
 
             // Split cell into left (text) and right (QR code) sections
-            let qr_size = Mm(label_height) - padding * 2.0;
+            // Use configured settings
+            let qr_size = if show_qr { Mm(label_height) - padding * 2.0 } else { Mm(0.0) };
+            
+            // Text area constraints
+            let max_text_width = if show_qr {
+                Mm(label_width) - qr_size - padding * 2.0
+            } else {
+                Mm(label_width) - padding * 2.0
+            };
 
             // ===== LEFT SECTION: TEXT =====
-            let mut current_y = content_y_base;
+            let mut current_y = content_y_base - Mm(2.0); // Start a bit lower
+            
+            // Base font sizes (scaled from config)
+            let title_size = if template == "compact" { font_size } else { font_size * 1.2 };
+            let body_size = font_size * 0.9;
+            let line_gap = Mm(font_size * 0.353 * 1.5); // Convert pt to mm (approx) and add spacing
 
-            // Item name (物料名) - Bold, larger font
-            let _ = current_layer.use_text(
-                &format!("物料名: {}", &name.chars().take(20).collect::<String>()),
-                14.0,
-                content_x,
-                current_y,
-                &font_bold
-            );
-            current_y = current_y - Mm(6.0);
-
-            // Specifications if exists
-            if let Some(s) = specs {
-                let spec_text = format!("规格: {}", &s.chars().take(30).collect::<String>());
-                let _ = current_layer.use_text(&spec_text, 10.0, content_x, current_y, &font_regular);
-                current_y = current_y - Mm(5.0);
-            }
-
-            // Quantity
-            let unit_str = unit.as_ref().map(|s| s.as_str()).unwrap_or("个");
-            let _ = current_layer.use_text(
-                &format!("数量: {} {}", qty, unit_str),
-                11.0,
-                content_x,
-                current_y,
-                &font_bold
-            );
-            current_y = current_y - Mm(5.0);
-
-            // Location if exists
-            if let Some(loc) = location {
+            // Item name (物料名)
+            if show_name {
                 let _ = current_layer.use_text(
-                    &format!("位置: {}", &loc.chars().take(25).collect::<String>()),
-                    10.0,
+                    &format!("{}", &name.chars().take(20).collect::<String>()),
+                    title_size,
                     content_x,
                     current_y,
-                    &font_regular
+                    &font_bold
                 );
+                current_y = current_y - line_gap;
             }
 
-            // ===== RIGHT SECTION: QR CODE =====
-            // Generate QR code
-            let qr_data = if let Some(qr_id) = qr_id {
-                qr_id.clone()
-            } else {
-                item_id.to_string()
-            };
-            let qr_code = QrCode::new(&qr_data)
-                .map_err(|e| format!("QR code generation failed: {}", e))?;
-
-            // Calculate QR code image size (in pixels) - higher resolution for better quality
-            let qr_pixel_size = 200;
-            let qr_size_int = qr_code.width();
-
-            // Manually render QR code to pixel data
-            let mut qr_bytes = vec![0u8; qr_pixel_size * qr_pixel_size];
-            let scale = qr_pixel_size / qr_size_int;
-
-            for y in 0..qr_pixel_size {
-                for x in 0..qr_pixel_size {
-                    let qr_x = x / scale;
-                    let qr_y = y / scale;
-                    if qr_x < qr_size_int && qr_y < qr_size_int {
-                        // Check if the QR code module is dark
-                        let module = qr_code[(qr_y, qr_x)];
-                        let is_dark = module == qrcode::Color::Dark;
-                        qr_bytes[y * qr_pixel_size + x] = if is_dark { 0 } else { 255 };
-                    }
+            // Specifications
+            if show_specs && template != "compact" {
+                if let Some(s) = specs {
+                    let spec_text = format!("规格: {}", &s.chars().take(30).collect::<String>());
+                    let _ = current_layer.use_text(&spec_text, body_size, content_x, current_y, &font_regular);
+                    current_y = current_y - line_gap;
                 }
             }
 
-            // Create ImageXObject
-            let qr_image_xobject = ImageXObject {
-                width: Px(qr_pixel_size),
-                height: Px(qr_pixel_size),
-                color_space: ColorSpace::Greyscale,
-                bits_per_component: ColorBits::Bit8,
-                interpolate: true,
-                image_data: qr_bytes,
-                image_filter: None,
-                clipping_bbox: None,
-            };
+            // Quantity
+            if show_qty {
+                let unit_str = unit.as_ref().map(|s| s.as_str()).unwrap_or("个");
+                let _ = current_layer.use_text(
+                    &format!("数量: {} {}", qty, unit_str),
+                    body_size,
+                    content_x,
+                    current_y,
+                    &font_bold
+                );
+                current_y = current_y - line_gap;
+            }
 
-            // Add QR code to document
-            let qr_image_wrapper = Image::from(qr_image_xobject);
+            // Location
+            if show_loc && template == "detailed" {
+                if let Some(loc) = location {
+                    let _ = current_layer.use_text(
+                        &format!("位置: {}", &loc.chars().take(25).collect::<String>()),
+                        body_size,
+                        content_x,
+                        current_y,
+                        &font_regular
+                    );
+                }
+            }
 
-            // Calculate QR code position (right side of the cell)
-            let qr_x = cell_x + Mm(label_width) - qr_size - padding;
-            let qr_y = cell_y_base + padding;
+            // ===== RIGHT SECTION: QR CODE =====
+            if show_qr {
+                // Generate QR code
+                let qr_data = if let Some(qr_id) = qr_id {
+                    qr_id.clone()
+                } else {
+                    item_id.to_string()
+                };
+                let qr_code = QrCode::new(&qr_data)
+                    .map_err(|e| format!("QR code generation failed: {}", e))?;
 
-            // Add to layer with proper transformation
-            let transform = ImageTransform {
-                translate_x: Some(qr_x),
-                translate_y: Some(qr_y),
-                scale_x: Some(qr_size.0),
-                scale_y: Some(qr_size.0),
-                rotate: None,
-                dpi: Some(300.0),
-            };
+                let qr_pixel_size = 200;
+                let qr_size_int = qr_code.width();
+                let mut qr_bytes = vec![0u8; qr_pixel_size * qr_pixel_size];
+                let scale = qr_pixel_size / qr_size_int;
 
-            qr_image_wrapper.add_to_layer(current_layer.clone(), transform);
+                for y in 0..qr_pixel_size {
+                    for x in 0..qr_pixel_size {
+                        let qr_x = x / scale;
+                        let qr_y = y / scale;
+                        if qr_x < qr_size_int && qr_y < qr_size_int {
+                            let module = qr_code[(qr_y, qr_x)];
+                            let is_dark = module == qrcode::Color::Dark;
+                            qr_bytes[y * qr_pixel_size + x] = if is_dark { 0 } else { 255 };
+                        }
+                    }
+                }
+
+                let qr_image_xobject = ImageXObject {
+                    width: Px(qr_pixel_size),
+                    height: Px(qr_pixel_size),
+                    color_space: ColorSpace::Greyscale,
+                    bits_per_component: ColorBits::Bit8,
+                    interpolate: true,
+                    image_data: qr_bytes,
+                    image_filter: None,
+                    clipping_bbox: None,
+                };
+
+                let qr_image_wrapper = Image::from(qr_image_xobject);
+
+                // Calculate QR code position
+                let qr_pos_x = cell_x + Mm(label_width) - qr_size - padding;
+                let qr_pos_y = cell_y_base + padding;
+
+                let transform = ImageTransform {
+                    translate_x: Some(qr_pos_x),
+                    translate_y: Some(qr_pos_y),
+                    scale_x: Some(qr_size.0),
+                    scale_y: Some(qr_size.0),
+                    rotate: None,
+                    dpi: Some(300.0),
+                };
+
+                qr_image_wrapper.add_to_layer(current_layer.clone(), transform);
+            }
         }
     }
 
@@ -318,8 +345,12 @@ pub async fn generate_image_labels(
     item_ids: Vec<i32>,
     columns: i32,
     rows: i32,
+    template: String,
+    font_size: f32,
+    show_fields: Vec<String>,
 ) -> Result<String, String> {
-    eprintln!("Image generation requested: {} items, {}x{} grid", item_ids.len(), columns, rows);
+    eprintln!("Image generation requested: {} items, {}x{} grid, template: {}, font: {}, fields: {:?}", 
+        item_ids.len(), columns, rows, template, font_size, show_fields);
 
     // Validate input
     if columns < 1 || rows < 1 || columns > 10 || rows > 10 {
@@ -368,7 +399,7 @@ pub async fn generate_image_labels(
     let _total_pages = (items_data.len() + labels_per_page - 1) / labels_per_page;
 
     // Image dimensions (high resolution for printing)
-    let dpi_scale = 4; // Scale factor for high resolution
+    let dpi_scale = 4; // Scale factor for high resolution. Base 300x400 fits A4 roughly
     let cell_width = 400 * dpi_scale;
     let cell_height = 300 * dpi_scale;
     let img_width = cell_width * columns as u32;
@@ -387,8 +418,15 @@ pub async fn generate_image_labels(
     let end_idx = std::cmp::min(labels_per_page, items_data.len());
     let page_items = &items_data[start_idx..end_idx];
 
+    // Parse visible fields
+    let show_name = show_fields.contains(&"name".to_string());
+    let show_specs = show_fields.contains(&"specifications".to_string());
+    let show_qty = show_fields.contains(&"quantity".to_string());
+    let show_loc = show_fields.contains(&"location".to_string());
+    let show_qr = show_fields.contains(&"qrCode".to_string());
+
     // Process each item
-    for (idx, (item_id, name, _specs, _qty, _unit, _location, qr_id)) in page_items.iter().enumerate() {
+    for (idx, (item_id, name, specs, qty, unit, location, qr_id)) in page_items.iter().enumerate() {
         let row = (idx / columns as usize) as i32;
         let col = (idx % columns as usize) as i32;
 
@@ -402,31 +440,75 @@ pub async fn generate_image_labels(
         // Padding inside cell
         let padding = 20 * dpi_scale;
 
-        // Draw item name (left side, black text)
-        let name_text = if name.len() > 15 {
-            format!("{}...", &name[..15])
+        // QR size
+        let qr_size = if show_qr { 180 * dpi_scale } else { 0 };
+        let text_area_width = if show_qr {
+            cell_width - qr_size - padding * 3 // extra padding between text and QR
         } else {
-            name.clone()
+            cell_width - padding * 2
         };
 
-        // Draw text (simplified - just draw the name)
-        draw_text_chinese(&mut img, &font, &name_text, cell_x + padding, cell_y + padding + 80, dpi_scale);
+        // Text positions
+        let mut text_y = (cell_y + padding) as f32;
+        
+        // Font sizes
+        let base_size = font_size * dpi_scale as f32; // Scale font by DPI
+        let title_size = if template == "compact" { base_size } else { base_size * 1.2 };
+        let body_size = base_size * 0.9;
+        let line_gap = body_size * 1.5;
+
+        // Draw item name
+        if show_name {
+            let name_text = if name.len() > 15 {
+                format!("{}...", &name[..15])
+            } else {
+                name.clone()
+            };
+            draw_text_chinese(&mut img, &font, &name_text, cell_x + padding, text_y, title_size);
+            text_y += title_size + (10 * dpi_scale) as f32; // Gap
+        }
+
+        // Draw Specifications
+        if show_specs && template != "compact" {
+            if let Some(s) = specs {
+                let spec_text = format!("规格: {}", &s.chars().take(20).collect::<String>());
+                draw_text_chinese(&mut img, &font, &spec_text, cell_x + padding, text_y, body_size);
+                text_y += line_gap;
+            }
+        }
+
+        // Draw Quantity
+        if show_qty {
+            let unit_str = unit.as_ref().map(|s| s.as_str()).unwrap_or("个");
+            let qty_text = format!("数量: {} {}", qty, unit_str);
+            draw_text_chinese(&mut img, &font, &qty_text, cell_x + padding, text_y, body_size);
+            text_y += line_gap;
+        }
+
+        // Draw Location
+        if show_loc && template == "detailed" {
+            if let Some(loc) = location {
+                let loc_text = format!("位置: {}", &loc.chars().take(15).collect::<String>());
+                draw_text_chinese(&mut img, &font, &loc_text, cell_x + padding, text_y, body_size);
+            }
+        }
 
         // Generate and draw QR code (right side)
-        let qr_data = if let Some(qr_id) = qr_id {
-            qr_id.clone()
-        } else {
-            item_id.to_string()
-        };
+        if show_qr {
+            let qr_data = if let Some(qr_id) = qr_id {
+                qr_id.clone()
+            } else {
+                item_id.to_string()
+            };
 
-        let qr_code = QrCode::new(&qr_data)
-            .map_err(|e| format!("QR code generation failed: {}", e))?;
+            let qr_code = QrCode::new(&qr_data)
+                .map_err(|e| format!("QR code generation failed: {}", e))?;
 
-        let qr_size = 180 * dpi_scale;
-        let qr_x = cell_x + cell_width - qr_size - padding;
-        let qr_y = cell_y + (cell_height - qr_size) / 2;
+            let qr_x = cell_x + cell_width - qr_size - padding;
+            let qr_y = cell_y + (cell_height - qr_size) / 2;
 
-        draw_qr_code(&mut img, &qr_code, qr_x, qr_y, qr_size);
+            draw_qr_code(&mut img, &qr_code, qr_x, qr_y, qr_size);
+        }
     }
 
     // Encode to PNG
@@ -474,14 +556,12 @@ fn draw_rect(img: &mut RgbImage, x: u32, y: u32, width: u32, height: u32, color:
 }
 
 /// Draw Chinese text on the image using rusttype
-fn draw_text_chinese(img: &mut RgbImage, font: &Font, text: &str, x: u32, y: u32, scale: u32) {
-    // Font size - larger for better resolution
-    let font_size = 24.0 * scale as f32;
+fn draw_text_chinese(img: &mut RgbImage, font: &Font, text: &str, x: u32, y: f32, font_size: f32) {
     let scale_font = Scale::uniform(font_size);
 
     // Calculate vertical positioning (text baseline)
     let v_metrics = font.v_metrics(scale_font);
-    let baseline = y as f32 + v_metrics.ascent;
+    let baseline = y + v_metrics.ascent;
 
     let mut cursor_x = x as f32;
 
@@ -504,7 +584,10 @@ fn draw_text_chinese(img: &mut RgbImage, font: &Font, text: &str, x: u32, y: u32
                     let py = gy as u32;
 
                     if px < img.width() && py < img.height() {
-                        let _ = img.put_pixel(px, py, ImageRgb([pixel_value, pixel_value, pixel_value]));
+                        // Blend with existing pixel (simple multiply)
+                        let existing = img.get_pixel(px, py)[0];
+                        let new_val = ((existing as u16 * pixel_value as u16) / 255) as u8;
+                        let _ = img.put_pixel(px, py, ImageRgb([new_val, new_val, new_val]));
                     }
                 }
             });

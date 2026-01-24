@@ -46,7 +46,7 @@ const ItemList: React.FC<ItemListProps> = ({ items, onEdit, onDelete }) => {
       }}
     >
       {items.map((item) => {
-        const isLowStock = item.min_quantity && item.quantity <= item.min_quantity;
+        const isLowStock = !!item.min_quantity && item.quantity <= item.min_quantity;
 
         return (
           <Box key={item.id}>
@@ -91,7 +91,7 @@ const ItemList: React.FC<ItemListProps> = ({ items, onEdit, onDelete }) => {
                 <Typography variant="body2" color="textSecondary">
                   数量: <strong>{item.quantity}</strong> {item.unit || '个'}
                 </Typography>
-                {item.min_quantity && (
+                {!!item.min_quantity && (
                   <Typography variant="caption" color="textSecondary">
                     最小库存: {item.min_quantity}
                   </Typography>

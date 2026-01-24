@@ -80,13 +80,19 @@ export const generatePdfLabels = async (
   itemIds: number[],
   paperSize: string,
   columns: number,
-  rows: number
+  rows: number,
+  template: string,
+  fontSize: number,
+  showFields: string[]
 ): Promise<string> => {
   return invoke<string>('generate_pdf_labels', {
     itemIds,
     paperSize,
     columns,
     rows,
+    template,
+    fontSize,
+    showFields,
   });
 };
 
@@ -94,12 +100,18 @@ export const generatePdfLabels = async (
 export const generateImageLabels = async (
   itemIds: number[],
   columns: number,
-  rows: number
+  rows: number,
+  template: string,
+  fontSize: number,
+  showFields: string[]
 ): Promise<string> => {
   return invoke<string>('generate_image_labels', {
     itemIds,
     columns,
     rows,
+    template,
+    fontSize,
+    showFields,
   });
 };
 

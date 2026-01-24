@@ -18,6 +18,7 @@ export interface Item {
   quantity: number;
   unit?: string;
   location_id?: number;
+  location_name?: string; // 直接从查询获取的位置名称
   min_quantity?: number;
   notes?: string;
   image_path?: string;

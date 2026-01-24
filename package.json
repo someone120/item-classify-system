@@ -5,10 +5,10 @@
   "scripts": {
     "dev": "cd frontend && npm run dev",
     "build": "cd frontend && npm run build",
-    "tauri": "tauri",
-    "tauri:dev": "tauri dev",
-    "tauri:build": "tauri build",
-    "tauri:android:build": "tauri android build"
+    "tauri": "node tauri",
+    "tauri:dev": "node tauri dev",
+    "tauri:build": "node tauri build",
+    "tauri:android:build": "node tauri android build"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.9.6"
