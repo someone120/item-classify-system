@@ -54,6 +54,8 @@ function TabPanel(props: TabPanelProps) {
   );
 }
 
+import PageContainer from '../components/PageContainer';
+
 const Labels = () => {
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
@@ -130,21 +132,15 @@ const Labels = () => {
   const getCheckedFields = () => Object.keys(showFields).filter(key => showFields[key as keyof typeof showFields]);
 
   const handleGenerate = async () => {
-    console.log('=== handleGenerate called ===');
-    console.log('Selected IDs:', selectedIds);
-
     if (selectedIds.length === 0) {
-      console.log('No items selected, showing error');
       setError('请至少选择一个物品');
       return;
     }
 
-    console.log('Starting PDF generation...');
     setGenerating(true);
     setError('');
 
     try {
-      console.log('Calling generatePdfLabels with config');
       const pdfData = await generatePdfLabels(
         selectedIds, 
         paperSize, 
@@ -154,72 +150,41 @@ const Labels = () => {
         fontSize,
         getCheckedFields()
       );
-      console.log('PDF data received, length:', pdfData.length);
-      console.log('PDF data preview:', pdfData.substring(0, 100));
 
-      // Remove the data URL prefix to get base64 string
       const base64Data = pdfData.split(',')[1];
-      console.log('Base64 data length:', base64Data?.length);
-
-      if (!base64Data) {
-        throw new Error('Invalid PDF data format');
-      }
+      if (!base64Data) throw new Error('Invalid PDF data format');
 
       const binaryString = atob(base64Data);
       const bytes = new Uint8Array(binaryString.length);
       for (let i = 0; i < binaryString.length; i++) {
         bytes[i] = binaryString.charCodeAt(i);
       }
-      console.log('Converted to bytes, length:', bytes.length);
 
-      // Open save dialog
-      console.log('Opening save dialog...');
       const filePath = await save({
-        filters: [
-          {
-            name: 'PDF',
-            extensions: ['pdf'],
-          },
-        ],
+        filters: [{ name: 'PDF', extensions: ['pdf'] }],
         defaultPath: `labels_${Date.now()}.pdf`,
       });
 
-      console.log('File path from dialog:', filePath);
-
       if (filePath) {
-        // Write the PDF file
         await writeFile(filePath, bytes);
-        console.log('PDF saved successfully to:', filePath);
-      } else {
-        console.log('User cancelled save dialog');
       }
     } catch (err) {
-      console.error('PDF generation failed:', err);
       setError('生成 PDF 失败: ' + (err as Error).message);
     } finally {
-      console.log('Setting generating to false');
       setGenerating(false);
     }
-
-    console.log('=== handleGenerate completed ===');
   };
 
   const handleGenerateImage = async () => {
-    console.log('=== handleGenerateImage called ===');
-    console.log('Selected IDs:', selectedIds);
-
     if (selectedIds.length === 0) {
-      console.log('No items selected, showing error');
       setError('请至少选择一个物品');
       return;
     }
 
-    console.log('Starting image generation...');
     setGeneratingImage(true);
     setError('');
 
     try {
-      console.log('Calling generateImageLabels with config');
       const imageData = await generateImageLabels(
         selectedIds, 
         columns, 
@@ -228,58 +193,32 @@ const Labels = () => {
         fontSize,
         getCheckedFields()
       );
-      console.log('Image data received, length:', imageData.length);
 
-      // Remove the data URL prefix to get base64 string
       const base64Data = imageData.split(',')[1];
-      console.log('Base64 data length:', base64Data?.length);
-
-      if (!base64Data) {
-        throw new Error('Invalid image data format');
-      }
+      if (!base64Data) throw new Error('Invalid image data format');
 
       const binaryString = atob(base64Data);
       const bytes = new Uint8Array(binaryString.length);
       for (let i = 0; i < binaryString.length; i++) {
         bytes[i] = binaryString.charCodeAt(i);
       }
-      console.log('Converted to bytes, length:', bytes.length);
 
-      // Open save dialog
-      console.log('Opening save dialog...');
       const filePath = await save({
-        filters: [
-          {
-            name: 'PNG',
-            extensions: ['png'],
-          },
-        ],
+        filters: [{ name: 'PNG', extensions: ['png'] }],
         defaultPath: `labels_${Date.now()}.png`,
       });
 
-      console.log('File path from dialog:', filePath);
-
       if (filePath) {
-        // Write the image file
         await writeFile(filePath, bytes);
-        console.log('Image saved successfully to:', filePath);
-      } else {
-        console.log('User cancelled save dialog');
       }
     } catch (err) {
-      console.error('Image generation failed:', err);
       setError('生成图片失败: ' + (err as Error).message);
     } finally {
-      console.log('Setting generatingImage to false');
       setGeneratingImage(false);
     }
-
-    console.log('=== handleGenerateImage completed ===');
   };
 
   const handleDirectPrint = async () => {
-    console.log('=== handleDirectPrint called ===');
-    
     if (selectedIds.length === 0) {
       setError('请至少选择一个物品');
       return;
@@ -289,8 +228,6 @@ const Labels = () => {
     setError('');
 
     try {
-      // Generate Image data instead of PDF for better print compatibility in WebView
-      // Note: currently supports single page
       const imageData = await generateImageLabels(
         selectedIds, 
         columns, 
@@ -300,17 +237,12 @@ const Labels = () => {
         getCheckedFields()
       );
       
-      // Create a hidden iframe for printing
       const iframe = document.createElement('iframe');
-      iframe.style.position = 'fixed';
-      iframe.style.right = '0';
-      iframe.style.bottom = '0';
-      iframe.style.width = '0';
-      iframe.style.height = '0';
-      iframe.style.border = 'none';
+      Object.assign(iframe.style, {
+        position: 'fixed', right: '0', bottom: '0', width: '0', height: '0', border: 'none'
+      });
       document.body.appendChild(iframe);
       
-      // Write HTML content with image to iframe
       const doc = iframe.contentWindow?.document;
       if (doc) {
         doc.open();
@@ -331,15 +263,13 @@ const Labels = () => {
         doc.close();
       }
       
-      // Clean up after a delay
       setTimeout(() => {
         if (document.body.contains(iframe)) {
           document.body.removeChild(iframe);
         }
-      }, 5000); // Increased timeout to ensure print dialog has time to appear
+      }, 5000);
       
     } catch (err) {
-      console.error('Direct print failed:', err);
       setError('打印失败: ' + (err as Error).message);
     } finally {
       setGenerating(false);
@@ -347,10 +277,12 @@ const Labels = () => {
   };
 
   return (
-    <Box>
-      <Typography variant="h4" gutterBottom>
-        标签打印
-      </Typography>
+    <PageContainer>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+        <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+            标签打印
+        </Typography>
+      </Box>
 
       <Stack spacing={3}>
         {/* Configuration with Tabs */}
@@ -565,15 +497,19 @@ const Labels = () => {
               {items.map((item) => (
                 <Card
                   key={item.id}
-                  variant="outlined"
+                  variant={selectedIds.includes(item.id) ? "elevation" : "outlined"}
                   sx={{
                     cursor: 'pointer',
-                    border: selectedIds.includes(item.id) ? 2 : 1,
-                    borderColor: selectedIds.includes(item.id) ? 'primary.main' : 'divider',
+                    bgcolor: selectedIds.includes(item.id) ? 'primary.light' : 'background.paper',
+                    color: selectedIds.includes(item.id) ? 'primary.dark' : 'text.primary',
+                    borderColor: 'divider',
+                    position: 'relative',
+                    overflow: 'visible',
                     transition: 'all 0.2s',
                     '&:hover': {
-                      borderColor: 'primary.light',
-                      backgroundColor: 'action.hover',
+                      bgcolor: selectedIds.includes(item.id) ? 'primary.light' : 'action.hover',
+                      transform: 'translateY(-2px)',
+                      boxShadow: 2,
                     },
                   }}
                   onClick={() => handleToggle(item.id)}
@@ -585,20 +521,33 @@ const Labels = () => {
                         onChange={() => handleToggle(item.id)}
                         onClick={(e) => e.stopPropagation()}
                         size="small"
+                        sx={{
+                          color: selectedIds.includes(item.id) ? 'primary.main' : 'action.disabled',
+                          '&.Mui-checked': {
+                            color: 'primary.dark',
+                          },
+                        }}
                       />
                       <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                        <Typography variant="subtitle2" noWrap>
+                        <Typography variant="subtitle2" noWrap sx={{ fontWeight: 600 }}>
                           {item.name}
                         </Typography>
                         {item.category && (
-                          <Chip label={item.category} size="small" sx={{ my: 0.5 }} />
+                          <Chip 
+                            label={item.category} 
+                            size="small" 
+                            sx={{ 
+                              my: 0.5, 
+                              bgcolor: selectedIds.includes(item.id) ? 'background.paper' : 'default',
+                            }} 
+                          />
                         )}
-                        <Typography variant="caption" color="textSecondary" display="block">
+                        <Typography variant="caption" display="block" sx={{ opacity: 0.8 }}>
                           库存: {item.quantity} {item.unit || '个'}
                         </Typography>
                       </Box>
                       {selectedIds.includes(item.id) && (
-                        <CheckIcon color="success" fontSize="small" />
+                        <CheckIcon color="inherit" fontSize="small" />
                       )}
                     </Box>
                   </CardContent>
@@ -617,7 +566,7 @@ const Labels = () => {
           </Typography>
         </Paper>
       </Stack>
-    </Box>
+    </PageContainer>
   );
 };
 

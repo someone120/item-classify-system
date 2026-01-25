@@ -11,12 +11,16 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  InputAdornment,
+  alpha,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import SearchIcon from '@mui/icons-material/Search';
+import FilterListIcon from '@mui/icons-material/FilterList';
 import ItemList from '../components/items/ItemList';
 import ItemDialog from '../components/items/ItemDialog';
+import PageContainer from '../components/PageContainer';
 import {
   getItems,
   createItem,
@@ -104,64 +108,128 @@ const Items: React.FC = () => {
   const categories = Array.from(new Set(items.map((i) => i.category).filter(Boolean)));
 
   return (
-    <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4">物品管理</Typography>
-        <Box display="flex" gap={1}>
+    <PageContainer>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
+        <Box>
+            <Typography variant="h4" sx={{ fontWeight: 'bold' }}>物品管理</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                管理仓库中的所有物品，支持筛选和快速搜索
+            </Typography>
+        </Box>
+        <Box display="flex" gap={1.5}>
           <Button
             startIcon={<RefreshIcon />}
             onClick={loadItems}
             disabled={loading}
+            sx={{ borderRadius: '12px' }}
           >
             刷新
           </Button>
-          <Button variant="contained" startIcon={<AddIcon />} onClick={handleAdd}>
+          <Button 
+            variant="contained" 
+            startIcon={<AddIcon />} 
+            onClick={handleAdd}
+            sx={{ px: 3 }}
+          >
             添加物品
           </Button>
         </Box>
       </Box>
 
-      <Paper sx={{ p: 2, mb: 2 }}>
-        <Box display="flex" gap={2} flexWrap="wrap">
+      <Paper 
+        elevation={0}
+        sx={{ 
+            p: 3, 
+            mb: 3, 
+            borderRadius: 4, 
+            border: '1px solid',
+            borderColor: 'divider',
+            bgcolor: 'surfaceContainer', // Use customized surface
+        }}
+      >
+        <Box display="flex" gap={2} flexWrap="wrap" alignItems="center">
           <TextField
             placeholder="搜索物品名称或规格..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            InputProps={{
-              startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} />,
+            fullWidth
+            sx={{ 
+                flexGrow: 1, 
+                minWidth: { xs: '100%', md: 300 },
+                '& .MuiOutlinedInput-root': {
+                    bgcolor: 'background.paper',
+                    borderRadius: '12px',
+                    '& fieldset': { borderColor: 'transparent' },
+                    '&:hover fieldset': { borderColor: 'transparent' },
+                    '&.Mui-focused fieldset': { borderColor: 'primary.main' },
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+                } 
             }}
-            sx={{ flexGrow: 1, minWidth: 200 }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                    <SearchIcon color="action" />
+                </InputAdornment>
+              ),
+            }}
           />
-          <FormControl sx={{ minWidth: 150 }}>
-            <InputLabel>分类筛选</InputLabel>
-            <Select
-              value={filterCategory}
-              label="分类筛选"
-              onChange={(e) => setFilterCategory(e.target.value)}
-            >
-              <MenuItem value="">全部分类</MenuItem>
-              {categories.map((cat) => (
-                <MenuItem key={cat} value={cat}>
-                  {cat}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <FormControl sx={{ minWidth: 150 }}>
-            <InputLabel>位置筛选</InputLabel>
-            <Select
-              value={filterLocation}
-              label="位置筛选"
-              onChange={(e) => setFilterLocation(e.target.value as number | '')}
-            >
-              <MenuItem value="">全部位置</MenuItem>
-              {locations.map((loc) => (
-                <MenuItem key={loc.id} value={loc.id}>
-                  {loc.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          
+          <Box display="flex" gap={2} sx={{ width: { xs: '100%', md: 'auto' }, flexGrow: { xs: 1, md: 0 } }}>
+             <FormControl sx={{ minWidth: 160, flex: 1 }}>
+                <Select
+                  value={filterCategory}
+                  onChange={(e) => setFilterCategory(e.target.value)}
+                  displayEmpty
+                  sx={{ 
+                      borderRadius: '12px', 
+                      bgcolor: 'background.paper',
+                      '& fieldset': { borderColor: 'transparent' },
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+                  }}
+                  renderValue={(selected) => {
+                      if (selected === '') {
+                        return <Box sx={{ display: 'flex', alignItems: 'center', color: 'text.secondary' }}><FilterListIcon sx={{fontSize: 20, mr: 1}}/> 全部分类</Box>;
+                      }
+                      return selected;
+                  }}
+                >
+                  <MenuItem value="">全部分类</MenuItem>
+                  {categories.map((cat) => (
+                    <MenuItem key={cat} value={cat}>
+                      {cat}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              <FormControl sx={{ minWidth: 160, flex: 1 }}>
+                <Select
+                  value={filterLocation}
+                  onChange={(e) => setFilterLocation(e.target.value as number | '')}
+                  displayEmpty
+                  sx={{ 
+                      borderRadius: '12px', 
+                      bgcolor: 'background.paper', 
+                      '& fieldset': { borderColor: 'transparent' },
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+                  }}
+                  renderValue={(selected) => {
+                    if (selected === '') {
+                      return <Box sx={{ display: 'flex', alignItems: 'center', color: 'text.secondary' }}>全部位置</Box>;
+                    }
+                    const loc = locations.find(l => l.id === selected);
+                    return loc ? loc.name : selected;
+                  }}
+                >
+                  <MenuItem value="">全部位置</MenuItem>
+                  {locations.map((loc) => (
+                    <MenuItem key={loc.id} value={loc.id}>
+                      {loc.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+          </Box>
         </Box>
       </Paper>
 
@@ -187,7 +255,7 @@ const Items: React.FC = () => {
         onClose={() => setDialogOpen(false)}
         onSave={handleSave}
       />
-    </Box>
+    </PageContainer>
   );
 };
 

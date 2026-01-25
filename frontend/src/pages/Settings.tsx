@@ -21,7 +21,10 @@ import {
   syncDownload,
 } from '../utils/api';
 
+import PageContainer from '../components/PageContainer';
+
 const Settings = () => {
+  // ... state declarations ...
   const [tabValue, setTabValue] = useState(0);
   const [webdavUrl, setWebdavUrl] = useState('');
   const [webdavUsername, setWebdavUsername] = useState('');
@@ -59,44 +62,49 @@ const Settings = () => {
   }, []);
 
   const handleSaveWebDAV = async () => {
-    try {
-      await configureWebDAV(webdavUrl, webdavUsername, webdavPassword, webdavPath);
-      setMessage({ type: 'success', text: 'WebDAV 配置已保存' });
-    } catch (err) {
-      setMessage({ type: 'error', text: '保存失败: ' + (err as Error).message });
-    }
+      // ... same as before
+      try {
+        await configureWebDAV(webdavUrl, webdavUsername, webdavPassword, webdavPath);
+        setMessage({ type: 'success', text: 'WebDAV 配置已保存' });
+      } catch (err) {
+        setMessage({ type: 'error', text: '保存失败: ' + (err as Error).message });
+      }
   };
 
   const handleSaveS3 = async () => {
-    try {
-      await configureS3(s3Bucket, s3Region, s3AccessKey, s3SecretKey, s3Endpoint || undefined);
-      setMessage({ type: 'success', text: 'S3 配置已保存' });
-    } catch (err) {
-      setMessage({ type: 'error', text: '保存失败: ' + (err as Error).message });
-    }
+      // ... same as before
+      try {
+        await configureS3(s3Bucket, s3Region, s3AccessKey, s3SecretKey, s3Endpoint || undefined);
+        setMessage({ type: 'success', text: 'S3 配置已保存' });
+      } catch (err) {
+        setMessage({ type: 'error', text: '保存失败: ' + (err as Error).message });
+      }
   };
 
   const handleSync = async (type: 'webdav' | 's3', action: 'upload' | 'download') => {
-    setSyncing(true);
-    setMessage(null);
-    try {
-      const result = action === 'upload'
-        ? await syncUpload(type)
-        : await syncDownload(type);
-
-      setMessage({ type: 'success', text: result.message });
-    } catch (err) {
-      setMessage({ type: 'error', text: '同步失败: ' + (err as Error).message });
-    } finally {
-      setSyncing(false);
-    }
+      // ... same as before
+      setSyncing(true);
+      setMessage(null);
+      try {
+        const result = action === 'upload'
+          ? await syncUpload(type)
+          : await syncDownload(type);
+  
+        setMessage({ type: 'success', text: result.message });
+      } catch (err) {
+        setMessage({ type: 'error', text: '同步失败: ' + (err as Error).message });
+      } finally {
+        setSyncing(false);
+      }
   };
 
   return (
-    <Box>
-      <Typography variant="h4" gutterBottom>
-        设置
-      </Typography>
+    <PageContainer>
+      <Box mb={3}>
+        <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+          设置
+        </Typography>
+      </Box>
 
       <Stack spacing={3}>
         {/* Sync Configuration */}
@@ -256,7 +264,7 @@ const Settings = () => {
           </Typography>
         </Paper>
       </Stack>
-    </Box>
+    </PageContainer>
   );
 };
 

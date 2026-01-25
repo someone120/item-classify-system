@@ -19,7 +19,10 @@ import QRCodeDialog from '../components/locations/QRCodeDialog';
 import { getLocations, createLocation, updateLocation, deleteLocation } from '../utils/api';
 import type { Location, LocationInput } from '../types';
 
+import PageContainer from '../components/PageContainer';
+
 const Locations: React.FC = () => {
+    // ... state declarations ...
   const [locations, setLocations] = useState<Location[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
@@ -33,6 +36,7 @@ const Locations: React.FC = () => {
   const [deleting, setDeleting] = useState(false);
 
   const loadLocations = async () => {
+      // ... same as before
     setLoading(true);
     setError('');
     try {
@@ -70,6 +74,7 @@ const Locations: React.FC = () => {
   };
 
   const confirmDelete = async () => {
+      // ...
     if (!locationToDelete) return;
 
     setDeleting(true);
@@ -96,6 +101,7 @@ const Locations: React.FC = () => {
   };
 
   const handleSave = async (input: LocationInput) => {
+      // ...
     if (selectedLocation) {
       await updateLocation(selectedLocation.id, input.name, input.description);
     } else {
@@ -105,9 +111,9 @@ const Locations: React.FC = () => {
   };
 
   return (
-    <Box>
+    <PageContainer>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4">位置管理</Typography>
+        <Typography variant="h4" sx={{ fontWeight: 'bold' }}>位置管理</Typography>
         <Box display="flex" gap={1}>
           <Button
             startIcon={<RefreshIcon />}
@@ -193,7 +199,7 @@ const Locations: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
+    </PageContainer>
   );
 };
 

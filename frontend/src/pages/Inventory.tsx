@@ -28,7 +28,10 @@ import { getItems, updateQuantity, getLocations, getLocationByQR } from '../util
 import QRCodeScanner from '../components/QRCodeScanner';
 import type { Item, Location, ItemFilter } from '../types';
 
+import PageContainer from '../components/PageContainer';
+
 const Inventory = () => {
+    // ... state declarations ...
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [items, setItems] = useState<Item[]>([]);
@@ -43,6 +46,7 @@ const Inventory = () => {
   const [scannerOpen, setScannerOpen] = useState(false);
 
   const loadItems = useCallback(async () => {
+      //...
     setLoading(true);
     setError('');
     try {
@@ -117,10 +121,12 @@ const Inventory = () => {
   };
 
   return (
-    <Box>
-      <Typography variant="h4" gutterBottom>
-        库存管理
-      </Typography>
+    <PageContainer>
+      <Box mb={3}>
+        <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+          库存管理
+        </Typography>
+      </Box>
 
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={2} flexWrap="wrap" gap={2}>
         <FormControl sx={{ minWidth: 200 }}>
@@ -261,7 +267,7 @@ const Inventory = () => {
         onClose={() => setScannerOpen(false)}
         onScanSuccess={handleScanSuccess}
       />
-    </Box>
+    </PageContainer>
   );
 };
 
