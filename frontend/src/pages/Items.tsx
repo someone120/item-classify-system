@@ -8,11 +8,9 @@ import {
   CircularProgress,
   Alert,
   FormControl,
-  InputLabel,
   Select,
   MenuItem,
   InputAdornment,
-  alpha,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import RefreshIcon from '@mui/icons-material/Refresh';
@@ -213,11 +211,12 @@ const Items: React.FC = () => {
                       '& fieldset': { borderColor: 'transparent' },
                       boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
                   }}
-                  renderValue={(selected) => {
+                  renderValue={(value) => {
+                    const selected = value as number | '';
                     if (selected === '') {
                       return <Box sx={{ display: 'flex', alignItems: 'center', color: 'text.secondary' }}>全部位置</Box>;
                     }
-                    const loc = locations.find(l => l.id === selected);
+                    const loc = locations.find(l => l.id === (selected as number));
                     return loc ? loc.name : selected;
                   }}
                 >
